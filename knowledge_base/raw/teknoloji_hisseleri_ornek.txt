@@ -1,0 +1,15 @@
+Bu dosya sirket tavsiyesi vermek icin degil, ABD hisse piyasasinda sektor ve endeks mantigini aciklamak icindir.
+Nasdaq'ta teknoloji agirligi daha yuksek oldugu icin yatirimcilar bu piyasayi sikca buyume ve teknoloji hisseleriyle birlikte dusunur.
+NYSE ise daha farkli sektorlerden buyuk ve yerlesik sirketleri de yogun sekilde barindirir.
+
+Bir yatirimci ABD borsasinda tek tek hisse bakarken sirketin hangi borsada islem gordugune, likiditesine, sektorune ve islem saatlerindeki oynakliga dikkat etmelidir.
+Teknoloji hisseleri ozellikle haber akisina, bilanco beklentilerine ve buyume tahminlerine duyarli olabilir.
+Ancak bir hissenin teknoloji hissesi olmasi, onun otomatik olarak uygun veya guvenli oldugu anlamina gelmez.
+
+ABD borsasi islemleri acisindan kullanici bir hisse adini sordugunda sistemin odagi sirket secimi degil, islem mekanigi olmalidir.
+Ornegin piyasa emri ile limit emri farki, seans saatleri, likidite farki ve riskler gibi konular cevaplanabilir.
+Belgede olmayan somut fiyat tahmini veya tavsiye verilmemelidir.
+
+Kaynak ozeti resmi metinlerden derlenmistir:
+Investor.gov Stocks FAQ
+Investor.gov How Stock Markets Work

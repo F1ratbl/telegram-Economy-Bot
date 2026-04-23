@@ -1,0 +1,24 @@
+ABD borsasi islemleri denince en cok karsilasilan iki ana piyasa NYSE ve Nasdaq'tir.
+ABD hisse islemlerinde cekirdek seans genellikle Dogu Saat Dilimi ile 09:30-16:00 arasindadir.
+NYSE tarafinda erken islem ve acilis oncesi asamalari bulunur; bazi urunlerde 07:00 civarindan once emir kabul edilse de asil duzenli seans 09:30'da baslar.
+Nasdaq ve NYSE uzerindeki hisse islemleri, duzenli seans disinda pre-market ve after-hours denilen uzatilmis seanslarda da gorulebilir.
+Bu uzatilmis seanslarda likidite genellikle daha dusuk olur, spread acilabilir ve fiyat oynakligi artabilir.
+
+ABD hisse senedi almak icin yatirimci genellikle bir broker hesabina ihtiyac duyar.
+Broker hesabinda nakit hesap veya margin hesap secimi onemlidir.
+Nakit hesapta alimlar icin tam odeme gerekir.
+Margin hesapta araci kurum menkul kiymetleri teminat sayarak borc verebilir; bu durum alim gucunu artirsa da zarari da buyutebilir.
+
+ABD borsasi hakkinda temel sorularda su basliklar sik gecen konulardir:
+NYSE ile Nasdaq farki,
+normal seans saatleri,
+pre-market ve after-hours islemleri,
+nakit hesap ile margin hesap farki,
+emir tipleri,
+short selling,
+pattern day trader kurali.
+
+Kaynak ozeti resmi metinlerden derlenmistir:
+Investor.gov How Stock Markets Work
+Investor.gov Brokerage Accounts
+NYSE Trading Information

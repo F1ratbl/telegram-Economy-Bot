@@ -1,0 +1,21 @@
+Margin hesap, araci kurumun yatirimciya menkul kiymet alimi icin borc verebildigi hesap turudur.
+Bu yapi alim gucunu artirir fakat zarar buyudugunde ek teminat cagrisi riskini de beraberinde getirir.
+Yatirimci marjin kullanirken faiz maliyeti, teminat seviyesi ve zorunlu satis riski oldugunu bilmelidir.
+
+Short selling yani aciga satis, yatirimcinin sahip olmadigi bir hisseyi odunc alip satmasi ve sonra yerine koymak uzere geri almasi mantigina dayanir.
+Aciga satis yapan kisi fiyat duserse kar edebilir, fiyat yukselirse zarar eder.
+Fiyat yukselisi teorik olarak sinirsiz zarara yol acabilecegi icin bu islem tecrube gerektirir.
+
+Pattern day trader kurali ABD piyasalarinda ozellikle kisa vadeli aktif islem yapanlar icin onemlidir.
+Genel FINRA tanimina gore, bir margin hesapta bes is gunu icinde dort veya daha fazla day trade yapilmasi ve bu islemlerin toplam islemler icinde belirli bir esigi asmasi halinde hesap pattern day trader olarak degerlendirilebilir.
+Bu durumda hesapta genellikle en az 25.000 dolar ozkaynak bulundurma gerekliligi dogar.
+Hesap bu esigin altina duserse gun ici islem kisitlari uygulanabilir.
+
+ABD borsasi hakkinda margin, short selling veya day trade sorulari cevaplanirken hem islem kurali hem de risk boyutu birlikte ele alinmalidir.
+
+Kaynak ozeti resmi metinlerden derlenmistir:
+Investor.gov Margin Account
+Investor.gov Understanding Margin Accounts
+Investor.gov Short Sales
+Investor.gov Pattern Day Trader
+Investor.gov Margin Rules for Day Trading

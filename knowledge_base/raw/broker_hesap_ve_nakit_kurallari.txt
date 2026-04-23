@@ -1,0 +1,17 @@
+ABD hisse islemlerine baslamak icin yatirimci genellikle bir brokerage account acar.
+Bu hesaplar temelde cash account ve margin account olarak ikiye ayrilir.
+Cash account icinde yatirimci menkul kiymet alirken tam odeme yapmak zorundadir ve araci kurumdan borc kullanamaz.
+Margin account icinde ise araci kurum teminat karsiliginda borc verebilir.
+
+Cash account kullanan yatirimcilarin odeme tamamlama kurallarina dikkat etmesi gerekir.
+Bir menkul kiymeti odemesi tamamlanmadan alip satmak freeriding benzeri ihlallere yol acabilir ve hesap uzerinde gecici kisitlama riskini dogurabilir.
+Bu nedenle ABD piyasasinda hesap turu secimi sadece kaldirac meselesi degil, operasyonel kural uyumu meselesidir.
+
+Yeni hesap acarken araci kurumun hangi hesap turunu varsayilan olarak sundugu kontrol edilmelidir.
+Bazi basvurularda margin hesap varsayilan olabilir.
+Yatirimci istedigi risk yapisina uygun hesap turunu bilerek secmelidir.
+
+Kaynak ozeti resmi metinlerden derlenmistir:
+Investor.gov Brokerage Accounts
+Investor.gov Cash Account
+Investor.gov How to Open a Brokerage Account

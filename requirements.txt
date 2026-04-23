@@ -1,0 +1,7 @@
+Flask
+chromadb
+google-generativeai
+gTTS
+httpx
+pypdf
+python-dotenv

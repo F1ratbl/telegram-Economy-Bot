@@ -1,0 +1,21 @@
+ABD borsalarinda en temel emir tipleri market order ve limit order'dir.
+Market order, menkul kiymetin piyasadaki en iyi mevcut fiyatindan hizli sekilde alinmasi veya satilmasi icin kullanilir.
+Bu emir tipinde islemin gerceklesmesi onceliklidir fakat kesin fiyat garantisi yoktur.
+Son gorulen fiyat ile islemin gerceklesecegi fiyat ayni olmak zorunda degildir.
+
+Limit order, menkul kiymetin belirli bir fiyat veya daha iyi bir seviyeden alinmasi ya da satilmasi icin kullanilir.
+Alis limit emri ancak belirlenen limit fiyatinda veya daha dusuk seviyede gerceklesebilir.
+Satis limit emri ise ancak belirlenen limit fiyatinda veya daha yuksek seviyede gerceklesebilir.
+Bu nedenle limit emirleri fiyat kontrolu saglar ama emrin kesinlikle dolacagini garanti etmez.
+
+Stop order ve stop-loss mantigi da ABD piyasalarinda onemlidir.
+Belirlenen stop seviyesine gelindiginde emir piyasa emrine donusebilir.
+Ozellikle sert hareketli piyasalarda stop mekanizmasi beklenen fiyattan farkli bir seviyede dolabilir.
+
+Pre-market ve after-hours seanslarinda emirlerin gerceklesme sekli duzenli seansa gore daha riskli olabilir.
+Likidite dusuk oldugunda kismi gerceklesme, daha genis spread veya beklenenden kotu fiyat gorulebilir.
+Bu nedenle ABD hisse islemlerinde emir tipi secimi sadece yon degil, uygulama riski acisindan da kritiktir.
+
+Kaynak ozeti resmi metinlerden derlenmistir:
+Investor.gov Types of Orders
+Investor.gov Understanding Order Types

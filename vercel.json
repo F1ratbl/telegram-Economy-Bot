@@ -1,8 +1,3 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "functions": {
-    "app/app.py": {
-      "includeFiles": "knowledge_base/chroma_db/**"
-    }
-  }
+  "$schema": "https://openapi.vercel.sh/vercel.json"
 }

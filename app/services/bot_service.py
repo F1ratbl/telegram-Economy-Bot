@@ -54,7 +54,11 @@ def safe_delete_file(file_path: Path | None) -> None:
 
 
 def combine_tool_and_kb_answers(tool_answer: str, kb_answer: str) -> str:
-    return f"{tool_answer} {kb_answer}".strip()
+    cleaned_tool = tool_answer.strip().rstrip(".")
+    cleaned_kb = kb_answer.strip()
+    if cleaned_kb.endswith("."):
+        return f"{cleaned_tool}. {cleaned_kb}"
+    return f"{cleaned_tool}. {cleaned_kb}."
 
 
 def build_capability_reply(chat_id: int) -> str:

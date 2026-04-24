@@ -5,7 +5,7 @@ from typing import Any
 import google.generativeai as genai
 
 from app.core.config import MAX_OUTPUT_TOKENS, UNKNOWN_MESSAGE
-from app.services.memory_service import format_memory_context, get_chat_memory
+from app.services.memory_service import get_chat_memory
 from app.services.state import MODEL
 from app.services.text_service import sanitize_reply_text
 
@@ -106,62 +106,6 @@ Kullanicinin sorusu:
 {user_text}
 """.strip()
     return _generate_text(prompt, max_output_tokens=220)
-
-
-def humanize_tool_reply(chat_id: int, user_text: str, tool_answer: str) -> str:
-    hitap = _build_user_name_context(chat_id)
-    prompt = f"""
-Asagidaki canli veri yanitini kullanarak kullaniciya daha dogal, insan gibi ve akici bir cevap ver.
-Verinin anlami degismesin.
-Yeni finansal veri uydurma.
-Yildiz kullanma.
-Markdown kullanma.
-Gereksiz baslik kullanma.
-En fazla 3 cumle kur.
-Yarim cumle birakma.
-Tek parca, tamamlanmis bir cevap ver.
-{hitap}
-
-Kullanicinin sorusu:
-{user_text}
-
-Canli veri:
-{tool_answer}
-""".strip()
-    return _generate_text(prompt, max_output_tokens=220)
-
-
-def generate_combined_market_reply(chat_id: int, user_text: str, tool_answer: str, kb_answer: str) -> str:
-    hitap = _build_user_name_context(chat_id)
-    prompt = f"""
-Kullaniciya tek parca, dogal ve insan gibi bir cevap ver.
-Asagidaki iki kaynagi birlestir:
-1. Canli veri
-2. Bilgi tabani ozeti
-
-Kurallar:
-- Ilk cumlede soruya dogrudan cevap ver.
-- Canli veri ile aciklayici bilgiyi ayni akista birlestir.
-- Baslik kullanma.
-- Yildiz kullanma.
-- Markdown kullanma.
-- Robot gibi durma; dogal, akici ve yardimsever yaz.
-- Sadece verilen iceriklere dayan.
-- En fazla 5 cumle kur.
-- Yarim cumle birakma.
-- Tek parca, tamamlanmis bir cevap ver.
-{hitap}
-
-Kullanicinin sorusu:
-{user_text}
-
-Canli veri:
-{tool_answer}
-
-Bilgi tabani ozeti:
-{kb_answer}
-""".strip()
-    return _generate_text(prompt, max_output_tokens=320)
 
 
 def transcribe_voice_to_text(audio_path: Path) -> tuple[str, str]:

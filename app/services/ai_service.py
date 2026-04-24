@@ -108,6 +108,31 @@ Kullanicinin sorusu:
     return _generate_text(prompt, max_output_tokens=220)
 
 
+def verbalize_market_reply(user_text: str, facts: dict[str, str]) -> str:
+    facts_text = "\n".join(f"- {key}: {value}" for key, value in facts.items())
+    prompt = f"""
+Asagidaki canli piyasa verilerini kullanarak kullaniciya dogal, akici ve insan gibi kisa bir Turkce cevap ver.
+
+Kurallar:
+- Verilen sayilari, tarihleri ve sembolleri hic degistirme.
+- Yeni veri uydurma.
+- Tek paragraf yaz.
+- Yildiz kullanma.
+- Markdown kullanma.
+- Yarim cumle birakma.
+- Gereksiz aciklama yapma.
+- Kullanici dogrudan fiyat sorduysa cevaba dogrudan fiyatla basla.
+- En fazla 3 cumle kur.
+
+Kullanicinin sorusu:
+{user_text}
+
+Veriler:
+{facts_text}
+""".strip()
+    return _generate_text(prompt, max_output_tokens=180)
+
+
 def transcribe_voice_to_text(audio_path: Path) -> tuple[str, str]:
     uploaded_file = genai.upload_file(path=audio_path, mime_type="audio/ogg")
     ready_file = wait_for_uploaded_file(uploaded_file.name)

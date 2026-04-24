@@ -9,6 +9,7 @@ from app.core.config import (
     TOOL_INDEX_KEYWORDS,
     TOOL_OIL_KEYWORDS,
 )
+from app.services.ai_service import verbalize_market_reply
 from app.services.state import ALPHA_VANTAGE_LOCK, HTTP_CLIENT
 from app.services.text_service import contains_keyword_variation, normalize_topic_text
 import app.services.state as state
@@ -117,6 +118,16 @@ def get_forex_rate_reply(user_text: str) -> str:
     last_refreshed = data.get("6. Last Refreshed", "-")
     if not rate:
         raise RuntimeError("Doviz kuru verisi bulunamadi.")
+    facts = {
+        "varlik": f"{from_currency}/{to_currency}",
+        "guncel_seviye": str(rate),
+        "son_guncellenme": str(last_refreshed),
+        "kaynak": "Alpha Vantage",
+    }
+    try:
+        return verbalize_market_reply(user_text, facts)
+    except Exception:
+        logger.exception("Doviz verisi dogal dile cevrilemedi, sabit metne donuluyor.")
     if _looks_like_direct_price_question(user_text):
         return f"Su an {from_currency}/{to_currency} kuru {rate} seviyesinde gorunuyor. Son guncellenme: {last_refreshed}."
     return (
@@ -130,6 +141,19 @@ def get_us_index_reply(user_text: str) -> str:
     proxy_symbol, proxy_label = get_index_proxy_symbol(symbol)
     payload = alpha_vantage_request({"function": "GLOBAL_QUOTE", "symbol": proxy_symbol})
     latest_date, latest_value = parse_global_quote(payload)
+    facts = {
+        "varlik": label,
+        "referans_sembol": proxy_symbol,
+        "referans_tanim": proxy_label,
+        "guncel_seviye": str(latest_value),
+        "veri_tarihi": str(latest_date),
+        "not": "Bu veri birebir resmi endeks seviyesi degil, ona yakin bir referanstir.",
+        "kaynak": "Alpha Vantage",
+    }
+    try:
+        return verbalize_market_reply(user_text, facts)
+    except Exception:
+        logger.exception("Endeks verisi dogal dile cevrilemedi, sabit metne donuluyor.")
     if _looks_like_direct_price_question(user_text):
         short_label_map = {
             "Nasdaq 100": "Nasdaq tarafi",
@@ -152,6 +176,17 @@ def get_us_index_reply(user_text: str) -> str:
 def get_oil_price_reply() -> str:
     payload = alpha_vantage_request({"function": "WTI", "interval": "daily"})
     latest_date, latest_value = parse_latest_oil_value(payload)
+    facts = {
+        "varlik": "WTI ham petrol",
+        "guncel_seviye": str(latest_value),
+        "veri_tarihi": str(latest_date),
+        "birim": "USD",
+        "kaynak": "Alpha Vantage",
+    }
+    try:
+        return verbalize_market_reply("petrol fiyatı", facts)
+    except Exception:
+        logger.exception("Petrol verisi dogal dile cevrilemedi, sabit metne donuluyor.")
     return (
         f"WTI ham petrol tarafinda guncel seviye {latest_value} USD. "
         f"Veri tarihi {latest_date}."

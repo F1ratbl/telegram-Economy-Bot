@@ -1,0 +1,28 @@
+NYSE ve Nasdaq, Amerika Birlesik Devletleri'ndeki iki buyuk hisse piyasasi altyapisidir; ancak ayni seyi ifade etmezler.
+NYSE tarihsel olarak fiziksel trading floor yapisiyla bilinen, daha koklu ve geleneksel bir borsa olarak anilir.
+Nasdaq ise elektronik islem altyapisiyla one cikan bir piyasadir ve teknoloji sirketleriyle daha cok ozdeslesmistir.
+
+Pratikte yatirimci icin temel farklardan biri sirket profilleridir.
+NYSE'de daha yerlesik, buyuk ve farkli sektorlerden gelen sirketler yogun olabilir.
+Nasdaq tarafinda ise buyume odakli, teknoloji agirlikli ve haber akisina daha hassas sirketler daha belirgin gorulebilir.
+Bu fark, her bir sirketin riski veya kalitesi hakkinda tek basina kesin bir hukum vermez; sadece genel piyasa karakterini anlatir.
+
+NYSE ile Nasdaq farki soruldugunda, "hangisi daha iyi" yerine "hangi yapida islem gordugu" ve "hangi sirket tiplerinin agirlikli oldugu" sorusu daha dogru olur.
+Bir hisse senedinin NYSE veya Nasdaq'ta islem gormesi, yatirimci acisindan emir iletimi, likidite, oynaklik ve haber etkisi gibi konularin nasil yorumlanacagini etkileyebilir.
+Ozellikle teknoloji agirligi nedeniyle Nasdaq ile ilgili sorular bazen hem borsa altyapisi hem de teknoloji temali endeksler birbirine karistirilabilir.
+
+Sik gorulen karisikliklardan biri sudur:
+Nasdaq bir borsa/piyasa altyapisidir.
+Nasdaq 100 ise bu yapidaki secili buyuk finans disi sirketlerden olusan ayri bir endekstir.
+Bu nedenle "Nasdaq kacti" sorusu bazen borsanin kendisini degil, daha cok Nasdaq 100 endeksini veya ona bagli bir piyasa gostergesini kasteder.
+
+Genel yorum yaparken su ayrim korunmalidir:
+NYSE ve Nasdaq farki yapisal bir karsilastirmadir.
+Nasdaq 100 veya benzeri gostergelerin seviyesi ise piyasa verisi konusudur.
+Bir kullanici hem "NYSE ile Nasdaq farki" hem de "Nasdaq fiyati" diye sordugunda, biri aciklayici bilgi, digeri canli veri ihtiyacidir.
+
+Kaynak ozeti resmi metinlerden derlenmistir:
+Investor.gov How Stock Markets Work
+Investor.gov Stocks FAQ
+Nasdaq Markets Overview
+NYSE Trading Information

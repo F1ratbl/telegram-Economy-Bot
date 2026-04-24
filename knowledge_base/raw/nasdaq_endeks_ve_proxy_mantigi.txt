@@ -1,0 +1,33 @@
+Nasdaq ifadesi gunluk dilde farkli seyler icin kullanilabilir.
+Bazi kullanicilar Nasdaq derken Nasdaq borsasini kasteder.
+Bazi kullanicilar ise Nasdaq 100 endeksini veya teknoloji agirlikli piyasa gostergesini kasteder.
+Bu nedenle cevap verirken once kavramin neye isaret ettigi dikkatle ayrilmalidir.
+
+Nasdaq 100, genellikle Nasdaq'ta islem goren buyuk finans disi sirketleri iceren bir endekstir.
+Bu endeksin seviyesi, teknoloji ve buyume hisselerinin genel yonu hakkinda kabaca fikir verebilir.
+Ancak endeks seviyesi ile borsanin kurumsal yapisi ayni sey degildir.
+
+Canli veri tarafinda bazen endeks verisine dogrudan erisim sinirli olabilir.
+Bu durumda piyasa yorumunda endeksin birebir resmi degeri yerine onu izlemeye calisan bir ETF proxy kullanilabilir.
+Nasdaq 100 icin sik kullanilan orneklerden biri QQQ'dur.
+QQQ, Nasdaq 100 ile birebir ayni sey degildir; fakat hareket yonunu izlemek icin pratik bir gosterge gibi kullanilabilir.
+
+Bu ayrim onemlidir:
+Nasdaq 100 endeksi bir piyasa gostergesidir.
+QQQ ise bu gostergenin performansina yakin hareket etmeye calisan bir ETF urunudur.
+Dolayisiyla "Nasdaq fiyati" verilirken QQQ kullaniliyorsa, bu durum kullaniciya acikca belirtilmelidir.
+
+Yorumlama acisindan:
+Nasdaq tarafindaki yukselisler genellikle teknoloji ve buyume hisselerine olan risk istahiyla birlikte okunur.
+Dususte ise faiz beklentileri, bilanco baskisi veya buyume hisselerine yonelik riskten kacis on plana cikabilir.
+Yine de sadece tek bir endeks seviyesiyle genis yatirim tavsiyesi verilmemelidir.
+
+Bir kullanici "NYSE ile Nasdaq farki nedir ve Nasdaq fiyati ne" dediginde iyi bir cevap sunlari ayirmalidir:
+Once NYSE ve Nasdaq'in iki farkli piyasa yapisi oldugu kisaca anlatilir.
+Ardindan Nasdaq fiyati ifadesiyle neyin kastedildigi aciklanir.
+Canli veri saglaniyorsa bunun Nasdaq 100'e bagli bir proxy mi yoksa dogrudan endeks seviyesi mi oldugu net soylemelidir.
+
+Kaynak ozeti resmi metinlerden derlenmistir:
+Investor.gov How Stock Markets Work
+Investor.gov Stocks FAQ
+Nasdaq Indexes Overview

@@ -1,0 +1,26 @@
+ABD borsasiyla ilgili karmasik sorularda kullanicinin tek bir cümlede iki farkli ihtiyaci olabilir.
+Bir kisim aciklayici bilgi ister.
+Diger kisim ise canli veri, oran veya son seviye gibi guncel veri ister.
+Dogru cevap icin bu iki ihtiyacin ayrilmasi gerekir.
+
+Ornek olarak "NYSE ile Nasdaq arasindaki fark nedir ve Nasdaq fiyati ne" sorusunda iki ayri katman vardir.
+Birinci katman NYSE ve Nasdaq'in ne oldugu, nasil farklastigi ve hangi tur sirketlerin agirlikli oldugu bilgisidir.
+Ikinci katman ise Nasdaq tarafindaki guncel gostergenin seviyesiyle ilgilidir.
+
+Bu tip sorularda iyi bir aciklama su akista ilerler:
+Once sorunun kavramsal kismi kisaca cevaplanir.
+Sonra canli veri varsa net sekilde verilir.
+Veri dogrudan endekse ait degil de ETF proxy gibi dolayli bir gostergeden geliyorsa bu da acikca belirtilir.
+
+Bilgi tabani temelli cevaplarda, kavramsal aciklama ile guncel piyasa verisini birbirine karistirmamak gerekir.
+Belgede olmayan fiyat tahmini, hedef seviye veya tavsiye eklenmemelidir.
+Canli veri varsa, o veri sadece mevcut seviyeyi gosteren bir referans olarak sunulmalidir.
+
+Kullanici deneyimi acisindan:
+Asiri robotik cevap yerine kisa, net ve akici bir anlatim tercih edilmelidir.
+Ancak dogallik ugruna belge disi bilgi eklenmemelidir.
+Ozellikle ABD borsasiyla ilgili egitimsel sorularda aciklayici cumle ile veri cumlesi birlikte ama ayri mantikla kurulmalidir.
+
+Kaynak ozeti resmi metinlerden derlenmistir:
+Investor.gov How Stock Markets Work
+Investor.gov Stocks FAQ

@@ -1,5 +1,4 @@
 import logging
-import threading
 from pathlib import Path
 
 from app.core.config import UNKNOWN_MESSAGE, WEBHOOK_BASE_URL
@@ -147,8 +146,5 @@ def process_update(update: dict[str, object]) -> None:
         safe_delete_file(input_audio_path)
         safe_delete_file(output_audio_path)
         delete_uploaded_gemini_file(gemini_file_name)
-
-
 def start_background_update(update: dict[str, object]) -> None:
-    thread = threading.Thread(target=process_update, args=(update,), daemon=True)
-    thread.start()
+    process_update(update)

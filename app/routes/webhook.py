@@ -11,8 +11,11 @@ def root():
     return jsonify({"status": "running"})
 
 
-@bp.post("/webhook")
+@bp.route("/webhook", methods=["GET", "POST"])
+@bp.route("/webhook/", methods=["GET", "POST"])
 def telegram_webhook():
+    if request.method == "GET":
+        return jsonify({"status": "webhook-ready"})
     update = request.get_json(silent=True) or {}
     try:
         start_background_update(update)

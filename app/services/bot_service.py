@@ -66,12 +66,19 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
             if context_chunks:
                 kb_answer = generate_kb_context_summary(chat_id, user_text, context_chunks)
                 if kb_answer and kb_answer != UNKNOWN_MESSAGE:
-                    combined = generate_combined_market_reply(chat_id, user_text, tool_answer, kb_answer)
-                    if combined and combined != UNKNOWN_MESSAGE:
-                        return combined
+                    try:
+                        combined = generate_combined_market_reply(chat_id, user_text, tool_answer, kb_answer)
+                        if combined and combined != UNKNOWN_MESSAGE:
+                            return combined
+                    except Exception:
+                        logger.exception("Canli veri + bilgi tabani yaniti dogallastirilirken hata olustu.")
                     return combine_tool_and_kb_answers(tool_answer, kb_answer)
-        humanized_tool_answer = humanize_tool_reply(chat_id, user_text, tool_answer)
-        return humanized_tool_answer or tool_answer
+        try:
+            humanized_tool_answer = humanize_tool_reply(chat_id, user_text, tool_answer)
+            return humanized_tool_answer or tool_answer
+        except Exception:
+            logger.exception("Canli veri yaniti dogallastirilirken hata olustu.")
+            return tool_answer
 
     if is_non_us_market_question(user_text):
         return UNKNOWN_MESSAGE

@@ -131,9 +131,16 @@ def get_us_index_reply(user_text: str) -> str:
     payload = alpha_vantage_request({"function": "GLOBAL_QUOTE", "symbol": proxy_symbol})
     latest_date, latest_value = parse_global_quote(payload)
     if _looks_like_direct_price_question(user_text):
+        short_label_map = {
+            "Nasdaq 100": "Nasdaq tarafi",
+            "S&P 500": "S&P 500 tarafi",
+            "Dow Jones": "Dow Jones tarafi",
+        }
+        natural_label = short_label_map.get(label, label)
         return (
-            f"Su an {label} tarafini takip etmek icin {proxy_label} baz aliyorum; guncel seviye {latest_value}. "
-            f"Veri tarihi {latest_date}. Bu, endeksin birebir resmi seviyesi degil ama ona yakin bir gostergedir."
+            f"Su an {natural_label} icin elimdeki en yakin gosterge {latest_value}. "
+            f"Bunu {proxy_symbol} uzerinden takip ediyorum; yani bu birebir resmi endeks seviyesi degil, ona yakin bir referans. "
+            f"Veri tarihi de {latest_date}."
         )
     return (
         f"{label} icin ucretsiz veri siniri nedeniyle {proxy_label} referans alindi. "

@@ -5,9 +5,7 @@ from app.core.config import UNKNOWN_MESSAGE, WEBHOOK_BASE_URL
 from app.services.ai_service import (
     delete_uploaded_gemini_file,
     generate_kb_based_reply,
-    generate_combined_market_reply,
     generate_kb_context_summary,
-    humanize_tool_reply,
     transcribe_voice_to_text,
 )
 from app.services.knowledge_base_service import (
@@ -25,6 +23,7 @@ from app.services.telegram_service import (
     send_text_message,
     telegram_api_request,
 )
+from app.services.text_service import is_capability_question
 
 
 logger = logging.getLogger("economy-assistant-bot")
@@ -55,10 +54,35 @@ def safe_delete_file(file_path: Path | None) -> None:
 
 
 def combine_tool_and_kb_answers(tool_answer: str, kb_answer: str) -> str:
-    return f"{tool_answer}\n\n{kb_answer}"
+    return f"{tool_answer} {kb_answer}".strip()
+
+
+def build_capability_reply(chat_id: int) -> str:
+    user_name = get_chat_memory(chat_id).get("name")
+    prefix = f"{user_name}, " if user_name else ""
+    return (
+        f"{prefix}ben daha cok ABD borsasi islemleriyle ilgili konularda yardimci oluyorum. "
+        "NYSE ve Nasdaq farki, seans saatleri, emir tipleri, cash account ve margin account farki, "
+        "short selling, pattern day trader kurali gibi basliklarda bilgi verebilirim. "
+        "Ayrica dolar, euro, petrol ve bazi ABD endeksleri icin canli veri de paylasabiliyorum."
+    )
+
+
+def build_name_ack_reply(chat_id: int) -> str:
+    user_name = get_chat_memory(chat_id).get("name")
+    if not user_name:
+        return "Ismini kaydedemedim ama istersen tekrar yaz, bir sonraki mesajlarda onunla hitap edeyim."
+    return f"Memnun oldum {user_name}. Bundan sonra uygun oldugunda sana adinla hitap ederim."
 
 
 def answer_question_with_kb(chat_id: int, user_text: str) -> str:
+    normalized_user_text = user_text.strip()
+    if is_capability_question(normalized_user_text):
+        return build_capability_reply(chat_id)
+
+    if detect_user_name(normalized_user_text) and len(normalized_user_text.split()) <= 6:
+        return build_name_ack_reply(chat_id)
+
     tool_answer = answer_with_market_tool(user_text)
     if tool_answer is not None:
         if is_us_stock_market_question(user_text):
@@ -66,19 +90,8 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
             if context_chunks:
                 kb_answer = generate_kb_context_summary(chat_id, user_text, context_chunks)
                 if kb_answer and kb_answer != UNKNOWN_MESSAGE:
-                    try:
-                        combined = generate_combined_market_reply(chat_id, user_text, tool_answer, kb_answer)
-                        if combined and combined != UNKNOWN_MESSAGE:
-                            return combined
-                    except Exception:
-                        logger.exception("Canli veri + bilgi tabani yaniti dogallastirilirken hata olustu.")
                     return combine_tool_and_kb_answers(tool_answer, kb_answer)
-        try:
-            humanized_tool_answer = humanize_tool_reply(chat_id, user_text, tool_answer)
-            return humanized_tool_answer or tool_answer
-        except Exception:
-            logger.exception("Canli veri yaniti dogallastirilirken hata olustu.")
-            return tool_answer
+        return tool_answer
 
     if is_non_us_market_question(user_text):
         return UNKNOWN_MESSAGE

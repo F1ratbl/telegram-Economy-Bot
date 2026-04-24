@@ -39,7 +39,7 @@ def search_knowledge_base(query: str) -> list[str]:
         for document, distance in zip(documents, distances):
             if not document or document in seen_docs:
                 continue
-            if distance is None or distance <= 1.6:
+            if distance is None or distance <= 2.2:
                 filtered_docs.append(document)
                 seen_docs.add(document)
     return filtered_docs

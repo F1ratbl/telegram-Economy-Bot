@@ -39,3 +39,16 @@ def build_kb_search_queries(text: str) -> list[str]:
         queries.append(simplified)
 
     return queries
+
+
+def is_capability_question(text: str) -> bool:
+    normalized = normalize_topic_text(text)
+    patterns = [
+        "neyi biliyorsun",
+        "neler biliyorsun",
+        "ne biliyorsun",
+        "hangi konulari biliyorsun",
+        "hangi konularda yardimci olabilirsin",
+        "ne yapabiliyorsun",
+    ]
+    return any(pattern in normalized for pattern in patterns)

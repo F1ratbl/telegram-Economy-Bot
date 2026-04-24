@@ -67,6 +67,8 @@ Markdown kullanma.
 Dogal, akici ve insan gibi yaz.
 Gereksiz baslik kullanma.
 Mumkunse dogrudan cevapla basla.
+Yarim cumle birakma.
+Tek parca, tamamlanmis bir cevap ver.
 {hitap}
 
 Bilgi tabani:
@@ -93,6 +95,8 @@ Markdown kullanma.
 Dogal, akici ve insan gibi yaz.
 Soruda canli fiyat ile aciklama bir aradaysa sadece aciklama kismini ozetle.
 En fazla 3 cumle kur.
+Yarim cumle birakma.
+Tek parca, tamamlanmis bir cevap ver.
 {hitap}
 
 Bilgi tabani:
@@ -114,6 +118,8 @@ Yildiz kullanma.
 Markdown kullanma.
 Gereksiz baslik kullanma.
 En fazla 3 cumle kur.
+Yarim cumle birakma.
+Tek parca, tamamlanmis bir cevap ver.
 {hitap}
 
 Kullanicinin sorusu:
@@ -142,6 +148,8 @@ Kurallar:
 - Robot gibi durma; dogal, akici ve yardimsever yaz.
 - Sadece verilen iceriklere dayan.
 - En fazla 5 cumle kur.
+- Yarim cumle birakma.
+- Tek parca, tamamlanmis bir cevap ver.
 {hitap}
 
 Kullanicinin sorusu:

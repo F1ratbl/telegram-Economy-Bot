@@ -111,7 +111,10 @@ def get_forex_rate_reply(user_text: str) -> str:
     last_refreshed = data.get("6. Last Refreshed", "-")
     if not rate:
         raise RuntimeError("Doviz kuru verisi bulunamadi.")
-    return f"Guncel {from_currency}/{to_currency} kuru: {rate}. Son guncellenme: {last_refreshed}. Kaynak: Alpha Vantage."
+    return (
+        f"Su anda {from_currency}/{to_currency} kuru {rate} seviyesinde gorunuyor. "
+        f"Son guncellenme bilgisi {last_refreshed}. Veriyi Alpha Vantage sagliyor."
+    )
 
 
 def get_us_index_reply(user_text: str) -> str:
@@ -120,15 +123,19 @@ def get_us_index_reply(user_text: str) -> str:
     payload = alpha_vantage_request({"function": "GLOBAL_QUOTE", "symbol": proxy_symbol})
     latest_date, latest_value = parse_global_quote(payload)
     return (
-        f"Ucretsiz veri erisimi nedeniyle {label} yerine {proxy_label} kullanildi. "
-        f"Guncel fiyat: {latest_value}. Veri tarihi: {latest_date}. Kaynak: Alpha Vantage."
+        f"{label} icin ucretsiz veri erisimi siniri nedeniyle {proxy_label} referans alindi. "
+        f"Guncel seviye {latest_value}, veri tarihi ise {latest_date}. "
+        f"Yani bunu Nasdaq 100'un birebir resmi seviyesi degil, ona yakin bir piyasa gostergesi gibi dusunebilirsin."
     )
 
 
 def get_oil_price_reply() -> str:
     payload = alpha_vantage_request({"function": "WTI", "interval": "daily"})
     latest_date, latest_value = parse_latest_oil_value(payload)
-    return f"Guncel WTI ham petrol fiyati: {latest_value} USD. Veri tarihi: {latest_date}. Kaynak: Alpha Vantage."
+    return (
+        f"WTI ham petrol tarafinda guncel gorunen seviye {latest_value} USD. "
+        f"Bu veri {latest_date} tarihli ve kaynak Alpha Vantage."
+    )
 
 
 def answer_with_market_tool(user_text: str) -> str | None:

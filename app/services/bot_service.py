@@ -5,7 +5,9 @@ from app.core.config import UNKNOWN_MESSAGE, WEBHOOK_BASE_URL
 from app.services.ai_service import (
     delete_uploaded_gemini_file,
     generate_kb_based_reply,
+    generate_combined_market_reply,
     generate_kb_context_summary,
+    humanize_tool_reply,
     transcribe_voice_to_text,
 )
 from app.services.knowledge_base_service import (
@@ -53,7 +55,7 @@ def safe_delete_file(file_path: Path | None) -> None:
 
 
 def combine_tool_and_kb_answers(tool_answer: str, kb_answer: str) -> str:
-    return f"Canli veri:\n{tool_answer}\n\nBilgi tabani ozeti:\n{kb_answer}"
+    return f"{tool_answer}\n\n{kb_answer}"
 
 
 def answer_question_with_kb(chat_id: int, user_text: str) -> str:
@@ -64,8 +66,12 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
             if context_chunks:
                 kb_answer = generate_kb_context_summary(chat_id, user_text, context_chunks)
                 if kb_answer and kb_answer != UNKNOWN_MESSAGE:
+                    combined = generate_combined_market_reply(chat_id, user_text, tool_answer, kb_answer)
+                    if combined and combined != UNKNOWN_MESSAGE:
+                        return combined
                     return combine_tool_and_kb_answers(tool_answer, kb_answer)
-        return tool_answer
+        humanized_tool_answer = humanize_tool_reply(chat_id, user_text, tool_answer)
+        return humanized_tool_answer or tool_answer
 
     if is_non_us_market_question(user_text):
         return UNKNOWN_MESSAGE

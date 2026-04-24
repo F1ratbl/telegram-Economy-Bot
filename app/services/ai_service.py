@@ -43,10 +43,19 @@ def extract_response_text(response: Any) -> str:
     raise RuntimeError("Gemini metin yaniti uretemedi.")
 
 
+def _build_user_name_context(chat_id: int) -> str:
+    user_name = get_chat_memory(chat_id).get("name")
+    return f"Kullanicinin adi: {user_name}" if user_name else "Kullanicinin adi bilinmiyor."
+
+
+def _generate_text(prompt: str, *, max_output_tokens: int) -> str:
+    response = MODEL.generate_content(prompt, generation_config={"max_output_tokens": max_output_tokens})
+    return sanitize_reply_text(extract_response_text(response))
+
+
 def generate_kb_based_reply(chat_id: int, user_text: str, context_chunks: list[str]) -> str:
     context_text = "\n\n".join(f"Belge Parcasi {index + 1}:\n{chunk}" for index, chunk in enumerate(context_chunks))
-    user_name = get_chat_memory(chat_id).get("name")
-    hitap = f"Kullanicinin adi: {user_name}" if user_name else "Kullanicinin adi bilinmiyor."
+    hitap = _build_user_name_context(chat_id)
     prompt = f"""
 Asagida ABD Borsasi Islemleri bilgi tabanindan getirilen belge parcalari bulunuyor.
 Sadece bu belge parcalarina dayanarak cevap ver.
@@ -55,6 +64,9 @@ Eger belgeler soruyu cevaplamak icin yetersizse tam olarak su cumleyi ver: {UNKN
 Yaniti Turkce ver.
 Yildiz kullanma.
 Markdown kullanma.
+Dogal, akici ve insan gibi yaz.
+Gereksiz baslik kullanma.
+Mumkunse dogrudan cevapla basla.
 {hitap}
 
 Bilgi tabani:
@@ -63,23 +75,23 @@ Bilgi tabani:
 Soru:
 {user_text}
 """.strip()
-    response = MODEL.generate_content(prompt, generation_config={"max_output_tokens": MAX_OUTPUT_TOKENS})
-    return sanitize_reply_text(extract_response_text(response))
+    return _generate_text(prompt, max_output_tokens=MAX_OUTPUT_TOKENS)
 
 
 def generate_kb_context_summary(chat_id: int, user_text: str, context_chunks: list[str]) -> str:
     context_text = "\n\n".join(f"Belge Parcasi {index + 1}:\n{chunk}" for index, chunk in enumerate(context_chunks))
-    user_name = get_chat_memory(chat_id).get("name")
-    hitap = f"Kullanicinin adi: {user_name}" if user_name else "Kullanicinin adi bilinmiyor."
+    hitap = _build_user_name_context(chat_id)
     prompt = f"""
 Asagida ABD Borsasi Islemleri bilgi tabanindan getirilen belge parcalari bulunuyor.
-Kullanicinin sorusuyla ilgili olarak bu belgelerden cikan arka plan bilgisini kisaca ozetle.
+Kullanicinin sorusundaki aciklayici kismi hedef alarak bu belgelerden cikan arka plan bilgisini kisaca ozetle.
 Sadece belgeye dayali bilgi ver.
 Belgede olmayan guncel fiyat, hedef veya yorum ekleme.
 Eger belgeler hic ilgili degilse tam olarak su cumleyi ver: {UNKNOWN_MESSAGE}
 Yaniti Turkce ver.
 Yildiz kullanma.
 Markdown kullanma.
+Dogal, akici ve insan gibi yaz.
+Soruda canli fiyat ile aciklama bir aradaysa sadece aciklama kismini ozetle.
 En fazla 3 cumle kur.
 {hitap}
 
@@ -89,8 +101,59 @@ Bilgi tabani:
 Kullanicinin sorusu:
 {user_text}
 """.strip()
-    response = MODEL.generate_content(prompt, generation_config={"max_output_tokens": 220})
-    return sanitize_reply_text(extract_response_text(response))
+    return _generate_text(prompt, max_output_tokens=220)
+
+
+def humanize_tool_reply(chat_id: int, user_text: str, tool_answer: str) -> str:
+    hitap = _build_user_name_context(chat_id)
+    prompt = f"""
+Asagidaki canli veri yanitini kullanarak kullaniciya daha dogal, insan gibi ve akici bir cevap ver.
+Verinin anlami degismesin.
+Yeni finansal veri uydurma.
+Yildiz kullanma.
+Markdown kullanma.
+Gereksiz baslik kullanma.
+En fazla 3 cumle kur.
+{hitap}
+
+Kullanicinin sorusu:
+{user_text}
+
+Canli veri:
+{tool_answer}
+""".strip()
+    return _generate_text(prompt, max_output_tokens=220)
+
+
+def generate_combined_market_reply(chat_id: int, user_text: str, tool_answer: str, kb_answer: str) -> str:
+    hitap = _build_user_name_context(chat_id)
+    prompt = f"""
+Kullaniciya tek parca, dogal ve insan gibi bir cevap ver.
+Asagidaki iki kaynagi birlestir:
+1. Canli veri
+2. Bilgi tabani ozeti
+
+Kurallar:
+- Ilk cumlede soruya dogrudan cevap ver.
+- Canli veri ile aciklayici bilgiyi ayni akista birlestir.
+- Baslik kullanma.
+- Yildiz kullanma.
+- Markdown kullanma.
+- Robot gibi durma; dogal, akici ve yardimsever yaz.
+- Sadece verilen iceriklere dayan.
+- En fazla 5 cumle kur.
+{hitap}
+
+Kullanicinin sorusu:
+{user_text}
+
+Canli veri:
+{tool_answer}
+
+Bilgi tabani ozeti:
+{kb_answer}
+""".strip()
+    return _generate_text(prompt, max_output_tokens=320)
 
 
 def transcribe_voice_to_text(audio_path: Path) -> tuple[str, str]:

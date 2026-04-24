@@ -48,37 +48,72 @@ def normalize_whitespace(text: str) -> str:
     return text.strip()
 
 
-def chunk_text(text: str, chunk_size: int = 1200, overlap: int = 200) -> list[str]:
+def split_long_paragraph(paragraph: str, chunk_size: int) -> list[str]:
+    paragraph = paragraph.strip()
+    if not paragraph:
+        return []
+    if len(paragraph) <= chunk_size:
+        return [paragraph]
+
+    sentences = re.split(r"(?<=[.!?])\s+", paragraph)
+    parts: list[str] = []
+    current = ""
+
+    for sentence in sentences:
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        candidate = f"{current} {sentence}".strip() if current else sentence
+        if len(candidate) <= chunk_size:
+            current = candidate
+            continue
+        if current:
+            parts.append(current)
+        if len(sentence) <= chunk_size:
+            current = sentence
+            continue
+
+        start = 0
+        while start < len(sentence):
+            end = min(start + chunk_size, len(sentence))
+            piece = sentence[start:end].strip()
+            if piece:
+                parts.append(piece)
+            start = end
+        current = ""
+
+    if current:
+        parts.append(current)
+
+    return parts
+
+
+def chunk_text(text: str, chunk_size: int = 1200) -> list[str]:
     clean_text = normalize_whitespace(text)
     if not clean_text:
         return []
 
+    paragraphs = [paragraph.strip() for paragraph in clean_text.split("\n\n") if paragraph.strip()]
+    normalized_paragraphs: list[str] = []
+    for paragraph in paragraphs:
+        normalized_paragraphs.extend(split_long_paragraph(paragraph, chunk_size))
+
     chunks: list[str] = []
-    start = 0
-    text_length = len(clean_text)
+    current = ""
 
-    while start < text_length:
-        end = min(start + chunk_size, text_length)
-        chunk = clean_text[start:end]
+    for paragraph in normalized_paragraphs:
+        candidate = f"{current}\n\n{paragraph}".strip() if current else paragraph
+        if len(candidate) <= chunk_size:
+            current = candidate
+            continue
+        if current:
+            chunks.append(current.strip())
+        current = paragraph
 
-        if end < text_length:
-            split_positions = [
-                chunk.rfind("\n\n"),
-                chunk.rfind(". "),
-                chunk.rfind("? "),
-                chunk.rfind("! "),
-            ]
-            best_split = max(split_positions)
-            if best_split > chunk_size // 2:
-                end = start + best_split + 1
-                chunk = clean_text[start:end]
+    if current:
+        chunks.append(current.strip())
 
-        chunks.append(chunk.strip())
-        if end >= text_length:
-            break
-        start = max(end - overlap, start + 1)
-
-    return [chunk for chunk in chunks if chunk]
+    return chunks
 
 
 def ingest_documents(input_dir: Path, reset: bool = False) -> None:

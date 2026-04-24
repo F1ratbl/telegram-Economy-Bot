@@ -5,7 +5,7 @@ from typing import Any
 
 from gtts import gTTS
 
-from app.core.config import TELEGRAM_API_BASE, TELEGRAM_FILE_BASE, TEMP_AUDIO_DIR
+from app.core.config import TELEGRAM_API_BASE, TELEGRAM_FILE_BASE, TEMP_AUDIO_DIR, VOICE_ENABLED
 from app.services.state import HTTP_CLIENT
 
 
@@ -61,6 +61,9 @@ def synthesize_turkish_speech(text: str) -> Path:
 
 def send_text_and_voice_reply(chat_id: int, reply_text: str) -> Path | None:
     send_text_message(chat_id, reply_text)
+    if not VOICE_ENABLED:
+        logger.info("Sesli yanit kapali; sadece metin gonderildi.")
+        return None
     output_audio_path = synthesize_turkish_speech(reply_text)
     try:
         send_voice_message(chat_id, output_audio_path)

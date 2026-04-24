@@ -98,6 +98,12 @@ def parse_global_quote(payload: dict[str, object]) -> tuple[str, str]:
     return trading_day, price
 
 
+def _looks_like_direct_price_question(user_text: str) -> bool:
+    normalized = normalize_topic_text(user_text)
+    direct_patterns = ["kac", "ne kadar", "fiyat", "fiyati", "kacti", "guncel"]
+    return any(pattern in normalized for pattern in direct_patterns)
+
+
 def get_forex_rate_reply(user_text: str) -> str:
     pair = detect_forex_pair(user_text)
     if not pair:
@@ -111,9 +117,11 @@ def get_forex_rate_reply(user_text: str) -> str:
     last_refreshed = data.get("6. Last Refreshed", "-")
     if not rate:
         raise RuntimeError("Doviz kuru verisi bulunamadi.")
+    if _looks_like_direct_price_question(user_text):
+        return f"Su an {from_currency}/{to_currency} kuru {rate} seviyesinde gorunuyor. Son guncellenme: {last_refreshed}."
     return (
-        f"Su anda {from_currency}/{to_currency} kuru {rate} seviyesinde gorunuyor. "
-        f"Son guncellenme bilgisi {last_refreshed}. Veriyi Alpha Vantage sagliyor."
+        f"{from_currency}/{to_currency} tarafinda guncel seviye {rate}. "
+        f"Bu veri {last_refreshed} zaman damgasiyla geldi."
     )
 
 
@@ -122,10 +130,15 @@ def get_us_index_reply(user_text: str) -> str:
     proxy_symbol, proxy_label = get_index_proxy_symbol(symbol)
     payload = alpha_vantage_request({"function": "GLOBAL_QUOTE", "symbol": proxy_symbol})
     latest_date, latest_value = parse_global_quote(payload)
+    if _looks_like_direct_price_question(user_text):
+        return (
+            f"Su an {label} tarafini takip etmek icin {proxy_label} baz aliyorum; guncel seviye {latest_value}. "
+            f"Veri tarihi {latest_date}. Bu, endeksin birebir resmi seviyesi degil ama ona yakin bir gostergedir."
+        )
     return (
-        f"{label} icin ucretsiz veri erisimi siniri nedeniyle {proxy_label} referans alindi. "
+        f"{label} icin ucretsiz veri siniri nedeniyle {proxy_label} referans alindi. "
         f"Guncel seviye {latest_value}, veri tarihi ise {latest_date}. "
-        f"Yani bunu Nasdaq 100'un birebir resmi seviyesi degil, ona yakin bir piyasa gostergesi gibi dusunebilirsin."
+        f"Bunu endeksin birebir resmi seviyesi degil, ona yakin bir piyasa gostergesi gibi dusunebilirsin."
     )
 
 
@@ -133,8 +146,8 @@ def get_oil_price_reply() -> str:
     payload = alpha_vantage_request({"function": "WTI", "interval": "daily"})
     latest_date, latest_value = parse_latest_oil_value(payload)
     return (
-        f"WTI ham petrol tarafinda guncel gorunen seviye {latest_value} USD. "
-        f"Bu veri {latest_date} tarihli ve kaynak Alpha Vantage."
+        f"WTI ham petrol tarafinda guncel seviye {latest_value} USD. "
+        f"Veri tarihi {latest_date}."
     )
 
 

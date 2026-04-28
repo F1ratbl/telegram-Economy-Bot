@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+import re
 from typing import Any
 
 import google.generativeai as genai
@@ -51,6 +52,93 @@ def _build_user_name_context(chat_id: int) -> str:
 def _generate_text(prompt: str, *, max_output_tokens: int) -> str:
     response = MODEL.generate_content(prompt, generation_config={"max_output_tokens": max_output_tokens})
     return sanitize_reply_text(extract_response_text(response))
+
+
+def _tokenize_for_overlap(text: str) -> set[str]:
+    lowered = text.lower()
+    lowered = lowered.translate(str.maketrans({"ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u"}))
+    tokens = set(re.findall(r"[a-z0-9]+", lowered))
+    stop_words = {
+        "acaba",
+        "ama",
+        "bir",
+        "bu",
+        "da",
+        "de",
+        "dedir",
+        "diye",
+        "gibi",
+        "hangi",
+        "icin",
+        "ile",
+        "mi",
+        "mu",
+        "muhtemelen",
+        "ne",
+        "neden",
+        "nedir",
+        "nasil",
+        "olan",
+        "olarak",
+        "ve",
+        "veya",
+    }
+    return {token for token in tokens if len(token) > 1 and token not in stop_words}
+
+
+def _is_source_like_sentence(sentence: str) -> bool:
+    normalized = sentence.lower()
+    source_markers = [
+        "kaynak ozeti",
+        "investor.gov",
+        "markets overview",
+        "trading information",
+        "stocks faq",
+    ]
+    return any(marker in normalized for marker in source_markers)
+
+
+def build_extractive_kb_fallback(user_text: str, context_chunks: list[str]) -> str:
+    question_tokens = _tokenize_for_overlap(user_text)
+    best_sentences: list[tuple[int, int, str]] = []
+
+    for chunk_index, chunk in enumerate(context_chunks):
+        sentences = [
+            sanitize_reply_text(sentence)
+            for sentence in re.split(r"(?<=[.!?])\s+|\n+", chunk)
+            if sanitize_reply_text(sentence)
+        ]
+        for sentence_index, sentence in enumerate(sentences):
+            if _is_source_like_sentence(sentence):
+                continue
+            sentence_tokens = _tokenize_for_overlap(sentence)
+            overlap_score = len(question_tokens & sentence_tokens)
+            if overlap_score == 0 and question_tokens:
+                continue
+            best_sentences.append((overlap_score, -(chunk_index * 100 + sentence_index), sentence))
+
+    if not best_sentences:
+        first_chunk = next((chunk for chunk in context_chunks if chunk.strip()), "")
+        fallback_sentences = [
+            sanitize_reply_text(sentence)
+            for sentence in re.split(r"(?<=[.!?])\s+|\n+", first_chunk)
+            if sanitize_reply_text(sentence) and not _is_source_like_sentence(sanitize_reply_text(sentence))
+        ]
+        best_text = " ".join(fallback_sentences[:2]).strip()
+        return best_text or UNKNOWN_MESSAGE
+
+    best_sentences.sort(reverse=True)
+    selected: list[str] = []
+    seen_sentences: set[str] = set()
+    for _, _, sentence in best_sentences:
+        if sentence in seen_sentences:
+            continue
+        selected.append(sentence)
+        seen_sentences.add(sentence)
+        if len(selected) == 2:
+            break
+
+    return " ".join(selected).strip() or UNKNOWN_MESSAGE
 
 
 def generate_kb_based_reply(chat_id: int, user_text: str, context_chunks: list[str]) -> str:

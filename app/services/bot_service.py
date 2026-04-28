@@ -3,6 +3,7 @@ from pathlib import Path
 
 from app.core.config import UNKNOWN_MESSAGE, WEBHOOK_BASE_URL
 from app.services.ai_service import (
+    build_extractive_kb_fallback,
     delete_uploaded_gemini_file,
     generate_kb_based_reply,
     generate_kb_context_summary,
@@ -107,7 +108,10 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
         return UNKNOWN_MESSAGE
 
     answer = generate_kb_based_reply(chat_id, user_text, context_chunks)
-    if not answer:
+    if not answer or answer == UNKNOWN_MESSAGE:
+        fallback_answer = build_extractive_kb_fallback(user_text, context_chunks)
+        if fallback_answer and fallback_answer != UNKNOWN_MESSAGE:
+            return fallback_answer
         return UNKNOWN_MESSAGE
     return answer
 

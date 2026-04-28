@@ -41,6 +41,7 @@ MAX_OUTPUT_TOKENS = 400
 MAX_MEMORY_TURNS = 8
 KB_COLLECTION_NAME = get_env("KB_COLLECTION_NAME") or "us_stock_market_knowledge"
 KB_DB_DIR = Path(get_env("KB_DB_DIR") or "knowledge_base/chroma_db")
+KB_RAW_DOCS_DIR = Path(get_env("KB_RAW_DOCS_DIR") or "knowledge_base/raw")
 QDRANT_URL = get_env("QDRANT_URL")
 QDRANT_API_KEY = get_env("QDRANT_API_KEY")
 QDRANT_COLLECTION_NAME = get_env("QDRANT_COLLECTION_NAME") or KB_COLLECTION_NAME

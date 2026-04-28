@@ -40,8 +40,6 @@ VOICE_ENABLED = (get_env("VOICE_ENABLED") or ("false" if IS_VERCEL else "true"))
 MAX_OUTPUT_TOKENS = 400
 MAX_MEMORY_TURNS = 8
 KB_COLLECTION_NAME = get_env("KB_COLLECTION_NAME") or "us_stock_market_knowledge"
-KB_DB_DIR = Path(get_env("KB_DB_DIR") or "knowledge_base/chroma_db")
-KB_RAW_DOCS_DIR = Path(get_env("KB_RAW_DOCS_DIR") or "knowledge_base/raw")
 QDRANT_URL = get_env("QDRANT_URL")
 QDRANT_API_KEY = get_env("QDRANT_API_KEY")
 QDRANT_COLLECTION_NAME = get_env("QDRANT_COLLECTION_NAME") or KB_COLLECTION_NAME
@@ -55,8 +53,6 @@ TELEGRAM_API_BASE = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
 TELEGRAM_FILE_BASE = f"https://api.telegram.org/file/bot{TELEGRAM_BOT_TOKEN}"
 TEMP_AUDIO_DIR = Path(get_env("TEMP_AUDIO_DIR") or ("/tmp/telegram_economy_audio" if IS_VERCEL else "tmp_audio"))
 TEMP_AUDIO_DIR.mkdir(exist_ok=True)
-if not KB_DB_DIR.exists():
-    KB_DB_DIR.mkdir(parents=True, exist_ok=True)
 
 NON_US_MARKET_KEYWORDS = {
     "altin",

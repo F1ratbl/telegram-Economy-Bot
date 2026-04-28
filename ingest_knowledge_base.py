@@ -15,7 +15,6 @@ load_dotenv(".env")
 load_dotenv(".ENV")
 
 KB_COLLECTION_NAME = os.getenv("KB_COLLECTION_NAME", "us_stock_market_knowledge")
-KB_DB_DIR = Path(os.getenv("KB_DB_DIR", "knowledge_base/chroma_db"))
 QDRANT_URL = os.getenv("QDRANT_URL")
 QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
 QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", KB_COLLECTION_NAME)
@@ -200,7 +199,7 @@ def ingest_documents(input_dir: Path, reset: bool = False) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="ABD Borsasi dokumanlarini chunk edip ChromaDB knowledgebase olarak kaydeder."
+        description="ABD Borsasi dokumanlarini chunk edip Qdrant knowledgebase olarak kaydeder."
     )
     parser.add_argument(
         "--input-dir",

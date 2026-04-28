@@ -13,6 +13,7 @@ from app.services.knowledge_base_service import (
     is_non_us_market_question,
     is_us_stock_market_question,
     search_knowledge_base,
+    should_search_knowledge_base,
 )
 from app.services.market_service import answer_with_market_tool
 from app.services.memory_service import detect_user_name, get_chat_memory, remember_exchange
@@ -90,7 +91,7 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
 
     tool_answer = answer_with_market_tool(user_text)
     if tool_answer is not None:
-        if is_us_stock_market_question(user_text):
+        if should_search_knowledge_base(user_text):
             context_chunks = search_knowledge_base(user_text)
             if context_chunks:
                 kb_answer = generate_kb_context_summary(chat_id, user_text, context_chunks)
@@ -98,9 +99,7 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
                     return combine_tool_and_kb_answers(tool_answer, kb_answer)
         return tool_answer
 
-    if is_non_us_market_question(user_text):
-        return UNKNOWN_MESSAGE
-    if not is_us_stock_market_question(user_text):
+    if not should_search_knowledge_base(user_text):
         return UNKNOWN_MESSAGE
 
     context_chunks = search_knowledge_base(user_text)

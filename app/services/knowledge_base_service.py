@@ -30,6 +30,12 @@ def is_us_stock_market_question(user_text: str) -> bool:
     return any(all(signal in normalized for signal in pair) for pair in broad_signals)
 
 
+def should_search_knowledge_base(user_text: str) -> bool:
+    if is_non_us_market_question(user_text):
+        return False
+    return is_us_stock_market_question(user_text)
+
+
 def embed_kb_text(text: str, *, task_type: str) -> list[float]:
     response: dict[str, Any] = genai.embed_content(
         model=KB_EMBEDDING_MODEL,
@@ -62,6 +68,10 @@ def _search_qdrant_knowledge_base(query: str) -> list[str]:
 
 
 def search_knowledge_base(query: str) -> list[str]:
+    if not should_search_knowledge_base(query):
+        logger.info("Soru knowledgebase kapsaminda degil, arama atlandi: %s", query)
+        return []
+
     if QDRANT_CLIENT is None:
         logger.warning("Qdrant istemcisi hazir degil; knowledgebase aramasi yapilamiyor.")
         return []

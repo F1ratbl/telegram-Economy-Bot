@@ -6,8 +6,9 @@ from pathlib import Path
 from typing import Iterable
 
 from dotenv import load_dotenv
-import chromadb
+import google.generativeai as genai
 from pypdf import PdfReader
+from qdrant_client import QdrantClient, models
 
 
 load_dotenv(".env")
@@ -15,7 +16,18 @@ load_dotenv(".ENV")
 
 KB_COLLECTION_NAME = os.getenv("KB_COLLECTION_NAME", "us_stock_market_knowledge")
 KB_DB_DIR = Path(os.getenv("KB_DB_DIR", "knowledge_base/chroma_db"))
+QDRANT_URL = os.getenv("QDRANT_URL")
+QDRANT_API_KEY = os.getenv("QDRANT_API_KEY")
+QDRANT_COLLECTION_NAME = os.getenv("QDRANT_COLLECTION_NAME", KB_COLLECTION_NAME)
+KB_EMBEDDING_MODEL = os.getenv("KB_EMBEDDING_MODEL", "models/text-embedding-004")
 RAW_DOCS_DIR = Path(os.getenv("KB_RAW_DOCS_DIR", "knowledge_base/raw"))
+GOOGLE_API_KEY = (
+    os.getenv("GOOGLE_API_KEY")
+    or os.getenv("GEMINI_API_KEY")
+    or os.getenv("GOOGLE_STUDIO_API")
+)
+
+genai.configure(api_key=GOOGLE_API_KEY)
 
 
 def iter_source_files(input_dir: Path) -> Iterable[Path]:
@@ -116,23 +128,27 @@ def chunk_text(text: str, chunk_size: int = 1200) -> list[str]:
     return chunks
 
 
+def embed_document_text(text: str) -> list[float]:
+    response = genai.embed_content(
+        model=KB_EMBEDDING_MODEL,
+        content=text,
+        task_type="retrieval_document",
+    )
+    embedding = response.get("embedding") or []
+    return [float(value) for value in embedding]
+
+
 def ingest_documents(input_dir: Path, reset: bool = False) -> None:
     input_dir.mkdir(parents=True, exist_ok=True)
-    KB_DB_DIR.mkdir(parents=True, exist_ok=True)
+    if not GOOGLE_API_KEY:
+        raise SystemExit("Qdrant ingestion icin GOOGLE_API_KEY veya GOOGLE_STUDIO_API gerekiyor.")
+    if not QDRANT_URL:
+        raise SystemExit("Qdrant ingestion icin QDRANT_URL gerekli.")
 
-    client = chromadb.PersistentClient(path=str(KB_DB_DIR))
-
-    if reset:
-        try:
-            client.delete_collection(KB_COLLECTION_NAME)
-        except Exception:
-            pass
-
-    collection = client.get_or_create_collection(name=KB_COLLECTION_NAME)
+    client = QdrantClient(url=QDRANT_URL, api_key=QDRANT_API_KEY, timeout=30.0)
 
     all_chunks: list[str] = []
-    all_ids: list[str] = []
-    all_metadatas: list[dict[str, str | int]] = []
+    all_points: list[models.PointStruct] = []
 
     for file_path in iter_source_files(input_dir):
         text = read_file_text(file_path)
@@ -140,13 +156,19 @@ def ingest_documents(input_dir: Path, reset: bool = False) -> None:
 
         for index, chunk in enumerate(chunks):
             all_chunks.append(chunk)
-            all_ids.append(f"{file_path.stem}-{index}-{uuid.uuid4().hex[:8]}")
-            all_metadatas.append(
-                {
-                    "source": str(file_path),
-                    "chunk_index": index,
-                    "topic": "ABD Borsasi Islemleri",
-                }
+            embedding = embed_document_text(chunk)
+            point_id = str(uuid.uuid5(uuid.NAMESPACE_URL, f"{file_path}:{index}:{chunk}"))
+            all_points.append(
+                models.PointStruct(
+                    id=point_id,
+                    vector=embedding,
+                    payload={
+                        "document": chunk,
+                        "source": str(file_path),
+                        "chunk_index": index,
+                        "topic": "ABD Borsasi Islemleri",
+                    },
+                )
             )
 
     if not all_chunks:
@@ -154,15 +176,26 @@ def ingest_documents(input_dir: Path, reset: bool = False) -> None:
             f"Kaydedilecek dokuman bulunamadi. ABD Borsasi dokumanlarini {input_dir} altina ekle."
         )
 
-    collection.add(
-        ids=all_ids,
-        documents=all_chunks,
-        metadatas=all_metadatas,
-    )
+    vector_size = len(all_points[0].vector)
+    if reset:
+        try:
+            client.delete_collection(collection_name=QDRANT_COLLECTION_NAME)
+        except Exception:
+            pass
 
-    print(f"{len(all_chunks)} chunk ChromaDB icine kaydedildi.")
-    print(f"Collection: {KB_COLLECTION_NAME}")
-    print(f"DB Path: {KB_DB_DIR}")
+    try:
+        client.get_collection(collection_name=QDRANT_COLLECTION_NAME)
+    except Exception:
+        client.create_collection(
+            collection_name=QDRANT_COLLECTION_NAME,
+            vectors_config=models.VectorParams(size=vector_size, distance=models.Distance.COSINE),
+        )
+
+    client.upsert(collection_name=QDRANT_COLLECTION_NAME, points=all_points)
+
+    print(f"{len(all_chunks)} chunk Qdrant icine kaydedildi.")
+    print(f"Collection: {QDRANT_COLLECTION_NAME}")
+    print(f"Qdrant URL: {QDRANT_URL}")
 
 
 def main() -> None:

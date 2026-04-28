@@ -5,3 +5,4 @@ gTTS
 httpx
 pypdf
 python-dotenv
+qdrant-client

@@ -1,7 +1,10 @@
 import logging
+from typing import Any
 
-from app.core.config import KB_TOP_K, NON_US_MARKET_KEYWORDS, US_STOCK_MARKET_KEYWORDS
-from app.services.state import KB_COLLECTION
+import google.generativeai as genai
+
+from app.core.config import KB_EMBEDDING_MODEL, KB_TOP_K, NON_US_MARKET_KEYWORDS, QDRANT_COLLECTION_NAME, US_STOCK_MARKET_KEYWORDS
+from app.services.state import KB_BACKEND, KB_COLLECTION, QDRANT_CLIENT
 from app.services.text_service import build_kb_search_queries, contains_keyword_variation, normalize_topic_text
 
 
@@ -21,7 +24,37 @@ def is_us_stock_market_question(user_text: str) -> bool:
     return any(all(signal in normalized for signal in pair) for pair in broad_signals)
 
 
+def embed_kb_text(text: str, *, task_type: str) -> list[float]:
+    response: dict[str, Any] = genai.embed_content(
+        model=KB_EMBEDDING_MODEL,
+        content=text,
+        task_type=task_type,
+    )
+    embedding = response.get("embedding") or []
+    return [float(value) for value in embedding]
+
+
 def search_knowledge_base(query: str) -> list[str]:
+    if KB_BACKEND == "qdrant" and QDRANT_CLIENT is not None:
+        filtered_docs: list[str] = []
+        seen_docs: set[str] = set()
+        for search_query in build_kb_search_queries(query):
+            query_vector = embed_kb_text(search_query, task_type="retrieval_query")
+            results = QDRANT_CLIENT.search(
+                collection_name=QDRANT_COLLECTION_NAME,
+                query_vector=query_vector,
+                limit=KB_TOP_K,
+                with_payload=True,
+            )
+            for point in results:
+                payload = point.payload or {}
+                document = payload.get("document")
+                if not isinstance(document, str) or not document or document in seen_docs:
+                    continue
+                filtered_docs.append(document)
+                seen_docs.add(document)
+        return filtered_docs
+
     if KB_COLLECTION is None:
         logger.warning("Knowledgebase collection yok.")
         return []

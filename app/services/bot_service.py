@@ -2,19 +2,9 @@ import logging
 from pathlib import Path
 
 from app.core.config import UNKNOWN_MESSAGE, WEBHOOK_BASE_URL
-from app.services.ai_service import (
-    build_extractive_kb_fallback,
-    delete_uploaded_gemini_file,
-    generate_kb_based_reply,
-    generate_kb_context_summary,
-    transcribe_voice_to_text,
-)
-from app.services.knowledge_base_service import (
-    is_non_us_market_question,
-    is_us_stock_market_question,
-    search_knowledge_base,
-    should_search_knowledge_base,
-)
+from app.services.ai_service import delete_uploaded_gemini_file, transcribe_voice_to_text
+from app.services.knowledge_base_service import should_search_knowledge_base
+from app.services.knowledge_tool import answer_with_knowledge_base_tool
 from app.services.market_service import answer_with_market_tool
 from app.services.memory_service import detect_user_name, get_chat_memory, remember_exchange
 from app.services.state import WEBHOOK_INIT_LOCK
@@ -92,27 +82,18 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     tool_answer = answer_with_market_tool(user_text)
     if tool_answer is not None:
         if should_search_knowledge_base(user_text):
-            context_chunks = search_knowledge_base(user_text)
-            if context_chunks:
-                kb_answer = generate_kb_context_summary(chat_id, user_text, context_chunks)
-                if kb_answer and kb_answer != UNKNOWN_MESSAGE:
-                    return combine_tool_and_kb_answers(tool_answer, kb_answer)
+            kb_answer = answer_with_knowledge_base_tool(chat_id, user_text, summary_only=True)
+            if kb_answer:
+                return combine_tool_and_kb_answers(tool_answer, kb_answer)
         return tool_answer
 
     if not should_search_knowledge_base(user_text):
         return UNKNOWN_MESSAGE
 
-    context_chunks = search_knowledge_base(user_text)
-    if not context_chunks:
-        return UNKNOWN_MESSAGE
-
-    answer = generate_kb_based_reply(chat_id, user_text, context_chunks)
-    if not answer or answer == UNKNOWN_MESSAGE:
-        fallback_answer = build_extractive_kb_fallback(user_text, context_chunks)
-        if fallback_answer and fallback_answer != UNKNOWN_MESSAGE:
-            return fallback_answer
-        return UNKNOWN_MESSAGE
-    return answer
+    kb_answer = answer_with_knowledge_base_tool(chat_id, user_text)
+    if kb_answer:
+        return kb_answer
+    return UNKNOWN_MESSAGE
 
 
 def process_update(update: dict[str, object]) -> None:

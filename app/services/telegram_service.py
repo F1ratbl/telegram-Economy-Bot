@@ -6,6 +6,7 @@ from typing import Any
 from gtts import gTTS
 
 from app.core.config import TELEGRAM_API_BASE, TELEGRAM_FILE_BASE, TEMP_AUDIO_DIR, VOICE_ENABLED
+from app.core.perf import log_timing
 from app.services.state import HTTP_CLIENT
 
 
@@ -30,10 +31,12 @@ def telegram_api_request(
     return payload["result"]
 
 
+@log_timing()
 def send_text_message(chat_id: int, text: str) -> None:
     telegram_api_request("sendMessage", data={"chat_id": str(chat_id), "text": text})
 
 
+@log_timing()
 def send_voice_message(chat_id: int, audio_path: Path) -> None:
     with audio_path.open("rb") as audio_file:
         telegram_api_request(
@@ -43,6 +46,7 @@ def send_voice_message(chat_id: int, audio_path: Path) -> None:
         )
 
 
+@log_timing()
 def send_audio_message(chat_id: int, audio_path: Path) -> None:
     with audio_path.open("rb") as audio_file:
         telegram_api_request(
@@ -52,6 +56,7 @@ def send_audio_message(chat_id: int, audio_path: Path) -> None:
         )
 
 
+@log_timing()
 def synthesize_turkish_speech(text: str) -> Path:
     output_path = TEMP_AUDIO_DIR / f"telegram_reply_{uuid.uuid4().hex}.mp3"
     tts = gTTS(text=text, lang="tr", slow=False)
@@ -59,6 +64,7 @@ def synthesize_turkish_speech(text: str) -> Path:
     return output_path
 
 
+@log_timing()
 def send_text_and_voice_reply(chat_id: int, reply_text: str) -> Path | None:
     send_text_message(chat_id, reply_text)
     if not VOICE_ENABLED:
@@ -75,6 +81,7 @@ def send_text_and_voice_reply(chat_id: int, reply_text: str) -> Path | None:
     return output_audio_path
 
 
+@log_timing()
 def download_telegram_voice(file_id: str) -> Path:
     file_result = telegram_api_request("getFile", data={"file_id": file_id})
     file_path = file_result["file_path"]

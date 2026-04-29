@@ -9,6 +9,7 @@ from app.core.config import (
     TOOL_INDEX_KEYWORDS,
     TOOL_OIL_KEYWORDS,
 )
+from app.core.perf import log_timing
 from app.services.ai_service import verbalize_market_reply
 from app.services.state import ALPHA_VANTAGE_LOCK, HTTP_CLIENT
 from app.services.text_service import contains_keyword_variation, normalize_topic_text
@@ -18,6 +19,7 @@ import app.services.state as state
 logger = logging.getLogger("economy-assistant-bot")
 
 
+@log_timing()
 def alpha_vantage_request(params: dict[str, str]) -> dict[str, object]:
     if not ALPHA_VANTAGE_API_KEY:
         raise RuntimeError(MARKET_TOOL_UNAVAILABLE_MESSAGE)
@@ -105,6 +107,7 @@ def _looks_like_direct_price_question(user_text: str) -> bool:
     return any(pattern in normalized for pattern in direct_patterns)
 
 
+@log_timing()
 def get_forex_rate_reply(user_text: str) -> str:
     pair = detect_forex_pair(user_text)
     if not pair:
@@ -136,6 +139,7 @@ def get_forex_rate_reply(user_text: str) -> str:
     )
 
 
+@log_timing()
 def get_us_index_reply(user_text: str) -> str:
     symbol, label = detect_index_symbol(user_text)
     proxy_symbol, proxy_label = get_index_proxy_symbol(symbol)
@@ -173,6 +177,7 @@ def get_us_index_reply(user_text: str) -> str:
     )
 
 
+@log_timing()
 def get_oil_price_reply() -> str:
     payload = alpha_vantage_request({"function": "WTI", "interval": "daily"})
     latest_date, latest_value = parse_latest_oil_value(payload)
@@ -193,6 +198,7 @@ def get_oil_price_reply() -> str:
     )
 
 
+@log_timing()
 def answer_with_market_tool(user_text: str) -> str | None:
     intent = detect_market_tool_intent(user_text)
     if intent is None:

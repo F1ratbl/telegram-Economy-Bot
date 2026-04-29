@@ -1,6 +1,7 @@
 import logging
 
 from app.core.config import UNKNOWN_MESSAGE
+from app.core.perf import log_timing
 from app.services.ai_service import (
     build_extractive_kb_fallback,
     generate_kb_based_reply,
@@ -12,6 +13,7 @@ from app.services.knowledge_base_service import search_knowledge_base, should_se
 logger = logging.getLogger("economy-assistant-bot")
 
 
+@log_timing()
 def answer_with_knowledge_base_tool(chat_id: int, user_text: str, *, summary_only: bool = False) -> str | None:
     if not should_search_knowledge_base(user_text):
         logger.info("Knowledgebase tool atlandi; soru kapsam disi: %s", user_text)

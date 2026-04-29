@@ -5,12 +5,18 @@ from typing import Any
 
 import google.generativeai as genai
 
+from app.core.perf import log_timing
 from app.core.config import MAX_OUTPUT_TOKENS, UNKNOWN_MESSAGE
 from app.services.memory_service import get_chat_memory
 from app.services.state import MODEL
 from app.services.text_service import sanitize_reply_text
+import logging
 
 
+logger = logging.getLogger("economy-assistant-bot")
+
+
+@log_timing()
 def wait_for_uploaded_file(file_name: str, timeout_seconds: int = 120):
     deadline = time.monotonic() + timeout_seconds
     while True:
@@ -44,13 +50,35 @@ def extract_response_text(response: Any) -> str:
     raise RuntimeError("Gemini metin yaniti uretemedi.")
 
 
+def extract_finish_reasons(response: Any) -> list[str]:
+    candidates = getattr(response, "candidates", None) or []
+    reasons: list[str] = []
+    for candidate in candidates:
+        finish_reason = getattr(candidate, "finish_reason", None)
+        if finish_reason is None:
+            continue
+        reason_name = getattr(finish_reason, "name", None)
+        reasons.append(str(reason_name or finish_reason))
+    return reasons
+
+
 def _build_user_name_context(chat_id: int) -> str:
     user_name = get_chat_memory(chat_id).get("name")
     return f"Kullanicinin adi: {user_name}" if user_name else "Kullanicinin adi bilinmiyor."
 
 
+@log_timing()
 def _generate_text(prompt: str, *, max_output_tokens: int) -> str:
     response = MODEL.generate_content(prompt, generation_config={"max_output_tokens": max_output_tokens})
+    finish_reasons = extract_finish_reasons(response)
+    if finish_reasons:
+        logger.info(
+            "Gemini finish_reason=%s | max_output_tokens=%s",
+            ",".join(finish_reasons),
+            max_output_tokens,
+        )
+        if any(reason.upper() == "MAX_TOKENS" for reason in finish_reasons):
+            logger.warning("Gemini cevabi token sinirina carparak bitmis olabilir.")
     return sanitize_reply_text(extract_response_text(response))
 
 
@@ -98,6 +126,7 @@ def _is_source_like_sentence(sentence: str) -> bool:
     return any(marker in normalized for marker in source_markers)
 
 
+@log_timing()
 def build_extractive_kb_fallback(user_text: str, context_chunks: list[str]) -> str:
     question_tokens = _tokenize_for_overlap(user_text)
     best_sentences: list[tuple[int, int, str]] = []
@@ -141,6 +170,7 @@ def build_extractive_kb_fallback(user_text: str, context_chunks: list[str]) -> s
     return " ".join(selected).strip() or UNKNOWN_MESSAGE
 
 
+@log_timing()
 def generate_kb_based_reply(chat_id: int, user_text: str, context_chunks: list[str]) -> str:
     context_text = "\n\n".join(f"Belge Parcasi {index + 1}:\n{chunk}" for index, chunk in enumerate(context_chunks))
     hitap = _build_user_name_context(chat_id)
@@ -168,6 +198,7 @@ Soru:
     return _generate_text(prompt, max_output_tokens=MAX_OUTPUT_TOKENS)
 
 
+@log_timing()
 def generate_kb_context_summary(chat_id: int, user_text: str, context_chunks: list[str]) -> str:
     context_text = "\n\n".join(f"Belge Parcasi {index + 1}:\n{chunk}" for index, chunk in enumerate(context_chunks))
     hitap = _build_user_name_context(chat_id)
@@ -196,6 +227,7 @@ Kullanicinin sorusu:
     return _generate_text(prompt, max_output_tokens=220)
 
 
+@log_timing()
 def verbalize_market_reply(user_text: str, facts: dict[str, str]) -> str:
     facts_text = "\n".join(f"- {key}: {value}" for key, value in facts.items())
     prompt = f"""
@@ -221,6 +253,7 @@ Veriler:
     return _generate_text(prompt, max_output_tokens=180)
 
 
+@log_timing()
 def transcribe_voice_to_text(audio_path: Path) -> tuple[str, str]:
     uploaded_file = genai.upload_file(path=audio_path, mime_type="audio/ogg")
     ready_file = wait_for_uploaded_file(uploaded_file.name)
@@ -244,8 +277,6 @@ def delete_uploaded_gemini_file(file_name: str | None) -> None:
     try:
         genai.delete_file(file_name)
     except Exception:
-        import logging
-
-        logging.getLogger("economy-assistant-bot").warning(
+        logger.warning(
             "Gemini yuklenen dosyasi silinemedi: %s", file_name, exc_info=True
         )

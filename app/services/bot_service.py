@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 from app.core.config import UNKNOWN_MESSAGE, WEBHOOK_BASE_URL
+from app.core.perf import log_timing, timed_block
 from app.services.ai_service import delete_uploaded_gemini_file, transcribe_voice_to_text
 from app.services.knowledge_base_service import should_search_knowledge_base
 from app.services.knowledge_tool import answer_with_knowledge_base_tool
@@ -94,6 +95,7 @@ def build_name_ack_reply(chat_id: int) -> str:
     return f"Memnun oldum {user_name}. Bundan sonra uygun oldugunda sana adinla hitap ederim."
 
 
+@log_timing()
 def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     normalized_user_text = user_text.strip()
     if is_capability_question(normalized_user_text):
@@ -119,6 +121,7 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     return UNKNOWN_MESSAGE
 
 
+@log_timing()
 def process_update(update: dict[str, object]) -> None:
     input_audio_path: Path | None = None
     output_audio_path: Path | None = None
@@ -150,15 +153,19 @@ def process_update(update: dict[str, object]) -> None:
             logger.info("Kullanici adi hafizaya kaydedildi: %s", detected_name)
 
         if user_text:
-            reply_text = answer_question_with_kb(chat_id, user_text)
+            with timed_block("process_update.answer_text"):
+                reply_text = answer_question_with_kb(chat_id, user_text)
         elif voice_payload:
-            input_audio_path = download_telegram_voice(voice_payload["file_id"])
-            transcribed_text, gemini_file_name = transcribe_voice_to_text(input_audio_path)
+            with timed_block("process_update.voice_download"):
+                input_audio_path = download_telegram_voice(voice_payload["file_id"])
+            with timed_block("process_update.voice_transcription"):
+                transcribed_text, gemini_file_name = transcribe_voice_to_text(input_audio_path)
             detected_name = detect_user_name(transcribed_text)
             if detected_name:
                 get_chat_memory(chat_id)["name"] = detected_name
                 logger.info("Kullanici adi sesli mesajdan hafizaya kaydedildi: %s", detected_name)
-            reply_text = answer_question_with_kb(chat_id, transcribed_text)
+            with timed_block("process_update.answer_transcribed_text"):
+                reply_text = answer_question_with_kb(chat_id, transcribed_text)
             user_text = transcribed_text
         else:
             send_text_message(
@@ -174,7 +181,8 @@ def process_update(update: dict[str, object]) -> None:
         elif voice_payload:
             remember_exchange(chat_id, "[Sesli mesaj]", reply_text)
 
-        output_audio_path = send_text_and_voice_reply(chat_id, reply_text)
+        with timed_block("process_update.reply_delivery"):
+            output_audio_path = send_text_and_voice_reply(chat_id, reply_text)
     except Exception:
         logger.exception("Update islenirken hata olustu.")
         if chat_id:

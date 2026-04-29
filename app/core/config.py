@@ -37,7 +37,7 @@ ALPHA_VANTAGE_API_KEY = get_env("ALPHA_VANTAGE_API_KEY", "ALPHAVANTAGE_API_KEY",
 IS_VERCEL = bool(os.getenv("VERCEL"))
 VOICE_ENABLED = (get_env("VOICE_ENABLED") or ("false" if IS_VERCEL else "true")).lower() in {"1", "true", "yes", "on"}
 
-MAX_OUTPUT_TOKENS = 400
+MAX_OUTPUT_TOKENS = 2000
 MAX_MEMORY_TURNS = 8
 KB_COLLECTION_NAME = get_env("KB_COLLECTION_NAME") or "us_stock_market_knowledge"
 QDRANT_URL = get_env("QDRANT_URL")

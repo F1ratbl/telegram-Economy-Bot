@@ -21,6 +21,29 @@ from app.services.text_service import is_capability_question
 logger = logging.getLogger("economy-assistant-bot")
 
 
+def is_start_command(message: dict[str, object]) -> bool:
+    text = (message.get("text") or "").strip()
+    if not text:
+        return False
+
+    entities = message.get("entities") or []
+    if not isinstance(entities, list) or not entities:
+        return False
+
+    first_entity = entities[0]
+    if not isinstance(first_entity, dict):
+        return False
+    if first_entity.get("type") != "bot_command" or first_entity.get("offset") != 0:
+        return False
+
+    command_length = first_entity.get("length")
+    if not isinstance(command_length, int) or command_length <= 0:
+        return False
+
+    command_text = text[:command_length].split("@", 1)[0].lower()
+    return command_text == "/start"
+
+
 def initialize_webhook() -> None:
     if state.WEBHOOK_INITIALIZED or not WEBHOOK_BASE_URL:
         return
@@ -106,6 +129,10 @@ def process_update(update: dict[str, object]) -> None:
         message = update.get("message") or update.get("edited_message")
         if not message:
             logger.info("Mesaj icermeyen update atlandi: %s", update)
+            return
+
+        if is_start_command(message):
+            logger.info("/start komutu alindi, cevap gonderilmeden atlandi.")
             return
 
         chat = message.get("chat") or {}

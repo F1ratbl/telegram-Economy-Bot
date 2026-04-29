@@ -54,12 +54,13 @@ def _search_qdrant_knowledge_base(query: str) -> list[str]:
     seen_docs: set[str] = set()
     for search_query in build_kb_search_queries(query):
         query_vector = embed_kb_text(search_query, task_type="retrieval_query")
-        results = QDRANT_CLIENT.search(
+        response = QDRANT_CLIENT.query_points(
             collection_name=QDRANT_COLLECTION_NAME,
-            query_vector=query_vector,
+            query=query_vector,
             limit=KB_TOP_K,
             with_payload=True,
         )
+        results = getattr(response, "points", None) or []
         for point in results:
             payload = point.payload or {}
             document = payload.get("document")

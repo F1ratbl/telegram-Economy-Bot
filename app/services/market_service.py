@@ -19,6 +19,21 @@ import app.services.state as state
 logger = logging.getLogger("economy-assistant-bot")
 
 
+def _looks_like_explanatory_question(user_text: str) -> bool:
+    normalized = normalize_topic_text(user_text)
+    explanatory_patterns = [
+        "nedir",
+        "ne demek",
+        "ne anlama gelir",
+        "farki ne",
+        "farki nedir",
+        "arasindaki fark",
+        "nasil calisir",
+        "nasil bir",
+    ]
+    return any(pattern in normalized for pattern in explanatory_patterns)
+
+
 @log_timing()
 def alpha_vantage_request(params: dict[str, str]) -> dict[str, object]:
     if not ALPHA_VANTAGE_API_KEY:
@@ -49,6 +64,8 @@ def detect_market_tool_intent(user_text: str) -> str | None:
     if any(contains_keyword_variation(normalized, keyword) for keyword in TOOL_OIL_KEYWORDS):
         return "oil"
     if any(contains_keyword_variation(normalized, keyword) for keyword in TOOL_INDEX_KEYWORDS):
+        if _looks_like_explanatory_question(user_text) and not _looks_like_direct_price_question(user_text):
+            return None
         return "index"
     if any(contains_keyword_variation(normalized, keyword) for keyword in TOOL_FOREX_KEYWORDS):
         return "forex"

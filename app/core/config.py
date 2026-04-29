@@ -32,12 +32,12 @@ GOOGLE_API_KEY = get_env(
     required=True,
 )
 WEBHOOK_BASE_URL = get_env("WEBHOOK_URL", "NGROK_URL", "WEBHOOK_BASE_URL")
-GEMINI_MODEL_NAME = get_env("GEMINI_MODEL", "GEMINI_MODEL_NAME") or "gemini-2.5-flash"
+GEMINI_MODEL_NAME = get_env("GEMINI_MODEL", "GEMINI_MODEL_NAME") or "gemini-2.5-flash-lite"
 ALPHA_VANTAGE_API_KEY = get_env("ALPHA_VANTAGE_API_KEY", "ALPHAVANTAGE_API_KEY", "AV_API_KEY")
 IS_VERCEL = bool(os.getenv("VERCEL"))
 VOICE_ENABLED = (get_env("VOICE_ENABLED") or ("false" if IS_VERCEL else "true")).lower() in {"1", "true", "yes", "on"}
 
-MAX_OUTPUT_TOKENS = 2000
+MAX_OUTPUT_TOKENS = 1000
 MAX_MEMORY_TURNS = 8
 KB_COLLECTION_NAME = get_env("KB_COLLECTION_NAME") or "us_stock_market_knowledge"
 QDRANT_URL = get_env("QDRANT_URL")

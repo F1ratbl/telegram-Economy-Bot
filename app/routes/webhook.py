@@ -1,7 +1,5 @@
 import logging
-
 from flask import Blueprint, jsonify, request
-
 from app.services.bot_service import start_background_update
 
 

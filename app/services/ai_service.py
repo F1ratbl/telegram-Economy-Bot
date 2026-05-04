@@ -291,10 +291,11 @@ Soru:
 def generate_acknowledgement_reply(chat_id: int, user_text: str) -> str:
     memory_context = format_memory_context(chat_id)
     prompt = f"""
-Kullanici kisa bir onay, tesekkur veya konusma devam mesaji yazdi.
-Buna son konusma gecmisini dikkate alarak dogal, sicak ve kisa bir Turkce cevap ver.
+Kullanici kisa bir onay, tesekkur, ovgu veya konusma devam mesaji yazdi.
+Buna son konusma gecmisini dikkate alarak dogal, sicak ve kisa bir Turkce sohbet cevabi ver.
 "Tamam." gibi ayni kelimeyi tekrar etme.
-Konusmayi nazikce yeni soruya ac.
+Kullaniciyi yeni soru sormaya zorlayan kalip cevaplar verme.
+"Nasil yardimci olabilirim" cumlesini sadece gercekten dogal olacaksa kullan.
 Yildiz kullanma.
 Markdown kullanma.
 En fazla 2 cumle kur.
@@ -313,9 +314,12 @@ def generate_conversational_fallback_reply(chat_id: int, user_text: str) -> str:
     memory_context = format_memory_context(chat_id)
     prompt = f"""
 Kullanicinin mesaji mevcut rule ve tool akislariyla eslesmedi.
-Mesaj kisa bir sohbet, onay, tesekkur, devam sinyali veya dogal konusma ise son konusma gecmisini dikkate alarak sicak ve kisa bir Turkce cevap ver.
-Mesaj gercek bir bilgi sorusu, canli veri talebi, yatirim yorumu veya uzmanlik gerektiren bir konuysa tam olarak su cumleyi ver: {UNKNOWN_MESSAGE}
+Mesaj soru degilse son konusma gecmisini dikkate alarak dogal, sicak ve kisa bir Turkce sohbet cevabi ver.
+Ornek soru olmayan mesajlar: aferin, helal, tesekkur ederim, cok iyisin, tamam, anladim, super.
+Mesaj acikca bir soru, canli veri talebi, yatirim yorumu veya uzmanlik gerektiren bilgi talebiyse tam olarak su cumleyi ver: {UNKNOWN_MESSAGE}
 "Tamam." gibi ayni kelimeyi tekrar etme.
+Kullaniciyi yeni soru sormaya zorlayan kalip cevaplar verme.
+"Nasil yardimci olabilirim" cumlesini sadece gercekten dogal olacaksa kullan.
 Yildiz kullanma.
 Markdown kullanma.
 En fazla 2 cumle kur.

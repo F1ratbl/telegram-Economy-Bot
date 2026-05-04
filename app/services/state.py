@@ -4,7 +4,7 @@ from typing import Any
 
 import httpx
 from google import genai
-from google.genai import types
+from google.genai import errors as genai_errors, types
 
 from app.core.config import (
     GEMINI_MODEL_NAME,
@@ -36,13 +36,31 @@ class GeminiModel:
         config_data = dict(generation_config or {})
         if self.system_instruction:
             config_data.setdefault("system_instruction", self.system_instruction)
-        config_data.setdefault("thinking_config", types.ThinkingConfig(thinking_budget=0))
+        if "2.5" in self.model_name:
+            config_data.setdefault("thinking_config", types.ThinkingConfig(thinking_budget=0))
+        return self._generate_with_config(contents, config_data)
+
+    def _generate_with_config(self, contents: Any, config_data: dict[str, Any]) -> Any:
         config = types.GenerateContentConfig(**config_data) if config_data else None
-        return self.client.models.generate_content(
-            model=self.model_name,
-            contents=contents,
-            config=config,
-        )
+        try:
+            return self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=config,
+            )
+        except genai_errors.APIError as exc:
+            message = str(getattr(exc, "message", "") or exc).lower()
+            if "thinking" not in message or "thinking_config" not in config_data:
+                raise
+            logger.warning("Model thinking_config desteklemedi; ayni istek thinking olmadan tekrar deneniyor.")
+            retry_config_data = dict(config_data)
+            retry_config_data.pop("thinking_config", None)
+            retry_config = types.GenerateContentConfig(**retry_config_data) if retry_config_data else None
+            return self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=retry_config,
+            )
 
 
 MODEL = GeminiModel(

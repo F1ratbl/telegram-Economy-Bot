@@ -58,7 +58,7 @@ Kurallar:
 - Aciklama yazma.
 - Eger kullanici selam veriyorsa greeting sec.
 - Eger kullanici nasil oldugunu soruyorsa how_are_you sec.
-- Eger kullanici tamam, anladim, peki, olur, eyvallah, tesekkur gibi kisa bir onay veya konusma devam mesaji veriyorsa acknowledgement sec.
+- Eger kullanici tamam, anladim, peki, olur, eyvallah, tesekkur, aferin, helal, cok iyisin gibi kisa bir onay, ovgu veya konusma devam mesaji veriyorsa acknowledgement sec.
 - Eger botun hangi konularda yardimci olabilecegini soruyorsa capability_question sec.
 - Eger kayitli adini soruyorsa ask_stored_name sec.
 - Eger bundan sonra adiyla, ismiyle veya benzer sekilde hitap edilmesini istiyorsa name_addressing_request sec.

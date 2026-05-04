@@ -228,6 +228,25 @@ Kullanicinin sorusu:
 
 
 @log_timing()
+def generate_general_reply(chat_id: int, user_text: str) -> str:
+    hitap = _build_user_name_context(chat_id)
+    prompt = f"""
+Kullanicinin sorusu genel ekonomi veya piyasa bilgisiyla ilgili.
+Kisa, net ve dogal bir Turkce cevap ver.
+Yatirim tavsiyesi verme.
+Belirsizlik varsa acikca soyle.
+Gereksiz baslik kullanma.
+Mumkunse dogrudan cevapla basla.
+En fazla 4 cumle kur.
+{hitap}
+
+Soru:
+{user_text}
+""".strip()
+    return _generate_text(prompt, max_output_tokens=min(MAX_OUTPUT_TOKENS, 300))
+
+
+@log_timing()
 def verbalize_market_reply(user_text: str, facts: dict[str, str]) -> str:
     facts_text = "\n".join(f"- {key}: {value}" for key, value in facts.items())
     prompt = f"""

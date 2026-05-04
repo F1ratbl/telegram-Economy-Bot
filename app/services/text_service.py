@@ -52,3 +52,48 @@ def is_capability_question(text: str) -> bool:
         "ne yapabiliyorsun",
     ]
     return any(pattern in normalized for pattern in patterns)
+
+
+def is_smalltalk_question(text: str) -> bool:
+    normalized = normalize_topic_text(text)
+    patterns = [
+        "merhaba",
+        "selam",
+        "selamlar",
+        "gunaydin",
+        "iyi aksamlar",
+        "iyi geceler",
+        "nasilsin",
+        "naber",
+        "napiyorsun",
+    ]
+    return any(pattern in normalized for pattern in patterns)
+
+
+def is_general_economy_question(text: str) -> bool:
+    normalized = normalize_topic_text(text)
+    keywords = [
+        "ekonomi",
+        "enflasyon",
+        "faiz",
+        "resesyon",
+        "stagflasyon",
+        "issizlik",
+        "merkez bankasi",
+        "fed",
+        "tcmb",
+        "doviz",
+        "kur",
+        "dolar",
+        "euro",
+        "petrol",
+        "emtia",
+        "altin",
+        "buyume",
+        "cari acik",
+        "butce acigi",
+        "tahvil",
+        "bono",
+        "parite",
+    ]
+    return any(contains_keyword_variation(normalized, keyword) for keyword in keywords)

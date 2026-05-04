@@ -3,7 +3,7 @@ from pathlib import Path
 
 from app.core.config import UNKNOWN_MESSAGE, WEBHOOK_BASE_URL
 from app.core.perf import log_timing, timed_block
-from app.services.ai_service import delete_uploaded_gemini_file, transcribe_voice_to_text
+from app.services.ai_service import delete_uploaded_gemini_file, generate_general_reply, transcribe_voice_to_text
 from app.services.knowledge_base_service import should_search_knowledge_base
 from app.services.knowledge_tool import answer_with_knowledge_base_tool
 from app.services.market_service import answer_with_market_tool
@@ -16,7 +16,7 @@ from app.services.telegram_service import (
     send_text_message,
     telegram_api_request,
 )
-from app.services.text_service import is_capability_question
+from app.services.text_service import is_capability_question, is_general_economy_question, is_smalltalk_question
 
 
 logger = logging.getLogger("economy-assistant-bot")
@@ -95,11 +95,24 @@ def build_name_ack_reply(chat_id: int) -> str:
     return f"Memnun oldum {user_name}. Bundan sonra uygun oldugunda sana adinla hitap ederim."
 
 
+def build_smalltalk_reply(chat_id: int) -> str:
+    user_name = get_chat_memory(chat_id).get("name")
+    prefix = f"{user_name}, " if user_name else ""
+    return (
+        f"{prefix}iyiyim, tesekkur ederim. "
+        "Ekonomi, doviz, petrol ve ABD borsasi konularinda yardimci olabilirim. "
+        "Istersen sorunu dogrudan yaz."
+    )
+
+
 @log_timing()
 def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     normalized_user_text = user_text.strip()
     if is_capability_question(normalized_user_text):
         return build_capability_reply(chat_id)
+
+    if is_smalltalk_question(normalized_user_text):
+        return build_smalltalk_reply(chat_id)
 
     if detect_user_name(normalized_user_text) and len(normalized_user_text.split()) <= 6:
         return build_name_ack_reply(chat_id)
@@ -113,11 +126,14 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
         return tool_answer
 
     if not should_search_knowledge_base(user_text):
+        if is_general_economy_question(user_text):
+            return generate_general_reply(chat_id, user_text)
         return UNKNOWN_MESSAGE
 
     kb_answer = answer_with_knowledge_base_tool(chat_id, user_text)
     if kb_answer:
         return kb_answer
+
     return UNKNOWN_MESSAGE
 
 

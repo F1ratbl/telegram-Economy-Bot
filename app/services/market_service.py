@@ -18,6 +18,7 @@ import app.services.state as state
 
 
 logger = logging.getLogger("economy-assistant-bot")
+TROY_OUNCE_TO_GRAM = 31.1034768
 
 
 def _contains_any_keyword(text: str, keywords: set[str]) -> bool:
@@ -144,19 +145,25 @@ def get_index_proxy_symbol(index_symbol: str) -> tuple[str, str]:
     return proxy_map.get(index_symbol, ("SPY", "S&P 500 ETF proxy (SPY)"))
 
 
-def detect_precious_metal_asset(user_text: str) -> tuple[str, str, str, str | None] | None:
+def detect_precious_metal_asset(user_text: str) -> tuple[str, str, str, str, str | None] | None:
     normalized = normalize_topic_text(user_text)
     if not _contains_any_keyword(normalized, TOOL_METAL_KEYWORDS):
         return None
 
     to_currency = "TRY" if any(token in normalized for token in {"tl", "try", "lira"}) else "USD"
     if any(token in normalized for token in {"gumus", "silver", "xag"}):
-        return ("XAG", to_currency, f"Gumus ({to_currency})", None)
+        return ("XAG", to_currency, f"Gumus ({to_currency})", "spot", None)
 
-    note = None
     if "gram altin" in normalized:
-        note = "Bu veri gram altin degil, uluslararasi altin referansidir."
-    return ("XAU", to_currency, f"Altin ({to_currency})", note)
+        return (
+            "XAU",
+            "TRY",
+            "Gram altin (yaklasik)",
+            "gram",
+            "Bu deger ons altin ve USD/TRY kurundan yaklasik hesaplanir.",
+        )
+
+    return ("XAU", to_currency, f"Altin ({to_currency})", "spot", None)
 
 
 def parse_latest_oil_value(payload: dict[str, object]) -> tuple[str, str]:
@@ -183,6 +190,83 @@ def parse_currency_exchange_rate(payload: dict[str, object]) -> tuple[str, str]:
     if not rate:
         raise RuntimeError("Kur verisi bulunamadi.")
     return str(last_refreshed), str(rate)
+
+
+def _extract_first_numeric_value(value: object) -> float | None:
+    if isinstance(value, (int, float)):
+        return float(value)
+    if isinstance(value, str):
+        normalized = value.strip().replace(",", "")
+        try:
+            return float(normalized)
+        except ValueError:
+            return None
+    if isinstance(value, list):
+        for item in value:
+            parsed = _extract_first_numeric_value(item)
+            if parsed is not None:
+                return parsed
+        return None
+    if isinstance(value, dict):
+        preferred_keys = [
+            "price",
+            "value",
+            "spot_price",
+            "close",
+            "last",
+        ]
+        lowered_map = {str(key).lower(): key for key in value.keys()}
+        for preferred_key in preferred_keys:
+            if preferred_key in lowered_map:
+                parsed = _extract_first_numeric_value(value[lowered_map[preferred_key]])
+                if parsed is not None:
+                    return parsed
+        for item in value.values():
+            parsed = _extract_first_numeric_value(item)
+            if parsed is not None:
+                return parsed
+    return None
+
+
+def _extract_timestamp_value(value: object) -> str | None:
+    if isinstance(value, str):
+        stripped = value.strip()
+        if any(char.isdigit() for char in stripped) and any(sep in stripped for sep in {"-", ":", "/"}):
+            return stripped
+        return None
+    if isinstance(value, list):
+        for item in value:
+            parsed = _extract_timestamp_value(item)
+            if parsed:
+                return parsed
+        return None
+    if isinstance(value, dict):
+        preferred_keys = [
+            "timestamp",
+            "last_refreshed",
+            "date",
+            "datetime",
+            "updated_at",
+        ]
+        lowered_map = {str(key).lower(): key for key in value.keys()}
+        for preferred_key in preferred_keys:
+            if preferred_key in lowered_map:
+                parsed = _extract_timestamp_value(value[lowered_map[preferred_key]])
+                if parsed:
+                    return parsed
+        for item in value.values():
+            parsed = _extract_timestamp_value(item)
+            if parsed:
+                return parsed
+    return None
+
+
+def parse_gold_silver_spot(payload: dict[str, object]) -> tuple[str, float]:
+    timestamp = _extract_timestamp_value(payload) or "-"
+    price = _extract_first_numeric_value(payload)
+    if price is None:
+        raise RuntimeError("Altin/gumus spot verisi bulunamadi.")
+    return timestamp, price
 
 
 def _looks_like_direct_price_question(user_text: str) -> bool:
@@ -224,15 +308,31 @@ def get_precious_metal_reply(user_text: str) -> str:
     asset = detect_precious_metal_asset(user_text)
     if not asset:
         return "Hangi emtiayi istedigini anlayamadim. Ornek: altin fiyati kac veya gumus kac yazabilirsin."
-    from_currency, to_currency, label, note = asset
-    payload = alpha_vantage_request(
-        {"function": "CURRENCY_EXCHANGE_RATE", "from_currency": from_currency, "to_currency": to_currency}
-    )
-    last_refreshed, rate = parse_currency_exchange_rate(payload)
+    symbol, to_currency, label, pricing_mode, note = asset
+    payload = alpha_vantage_request({"function": "GOLD_SILVER_SPOT", "symbol": symbol})
+    last_refreshed, spot_price_usd = parse_gold_silver_spot(payload)
+    rate = spot_price_usd
+    unit = "USD/ons"
+
+    if to_currency == "TRY" or pricing_mode == "gram":
+        fx_payload = alpha_vantage_request(
+            {"function": "CURRENCY_EXCHANGE_RATE", "from_currency": "USD", "to_currency": "TRY"}
+        )
+        _, usd_try_rate = parse_currency_exchange_rate(fx_payload)
+        usd_try = float(usd_try_rate)
+        if pricing_mode == "gram":
+            rate = spot_price_usd * usd_try / TROY_OUNCE_TO_GRAM
+            unit = "TRY/gram"
+        else:
+            rate = spot_price_usd * usd_try
+            unit = "TRY/ons"
+
+    rate_text = f"{rate:.2f}" if unit.startswith("TRY") else f"{rate:.4f}"
     facts = {
         "varlik": label,
-        "guncel_seviye": str(rate),
+        "guncel_seviye": rate_text,
         "son_guncellenme": str(last_refreshed),
+        "birim": unit,
         "kaynak": "Alpha Vantage",
     }
     if note:
@@ -241,7 +341,7 @@ def get_precious_metal_reply(user_text: str) -> str:
         return verbalize_market_reply(user_text, facts)
     except Exception:
         logger.exception("Metal verisi dogal dile cevrilemedi, sabit metne donuluyor.")
-    response = f"Su an {label} icin guncel seviye {rate}. Son guncellenme: {last_refreshed}."
+    response = f"Su an {label} icin guncel seviye {rate_text} {unit}. Son guncellenme: {last_refreshed}."
     if note:
         response = f"{response} {note}"
     return response

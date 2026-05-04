@@ -7,6 +7,7 @@ from app.core.config import (
     MARKET_TOOL_UNAVAILABLE_MESSAGE,
     TOOL_FOREX_KEYWORDS,
     TOOL_INDEX_KEYWORDS,
+    TOOL_METAL_KEYWORDS,
     TOOL_OIL_KEYWORDS,
 )
 from app.core.perf import log_timing
@@ -17,6 +18,10 @@ import app.services.state as state
 
 
 logger = logging.getLogger("economy-assistant-bot")
+
+
+def _contains_any_keyword(text: str, keywords: set[str]) -> bool:
+    return any(contains_keyword_variation(text, keyword) for keyword in keywords)
 
 
 def _looks_like_explanatory_question(user_text: str) -> bool:
@@ -63,19 +68,37 @@ def detect_market_tool_intent(user_text: str) -> str | None:
     normalized = normalize_topic_text(user_text)
     if detect_forex_pair(user_text) and _looks_like_direct_price_question(user_text):
         return "forex"
-    if any(contains_keyword_variation(normalized, keyword) for keyword in TOOL_OIL_KEYWORDS):
+    if detect_precious_metal_asset(user_text) and _looks_like_direct_price_question(user_text):
+        return "metal"
+    if _contains_any_keyword(normalized, TOOL_OIL_KEYWORDS):
+        if _looks_like_explanatory_question(user_text) and not _looks_like_direct_price_question(user_text):
+            return None
         return "oil"
-    if any(contains_keyword_variation(normalized, keyword) for keyword in TOOL_INDEX_KEYWORDS):
+    if _contains_any_keyword(normalized, TOOL_INDEX_KEYWORDS):
         if _looks_like_explanatory_question(user_text) and not _looks_like_direct_price_question(user_text):
             return None
         return "index"
-    if any(contains_keyword_variation(normalized, keyword) for keyword in TOOL_FOREX_KEYWORDS):
+    if _contains_any_keyword(normalized, TOOL_FOREX_KEYWORDS) and _looks_like_direct_price_question(user_text):
         return "forex"
     return None
 
 
 def detect_forex_pair(user_text: str) -> tuple[str, str] | None:
     normalized = normalize_topic_text(user_text)
+    if any(token in normalized for token in {"eur/usd", "eurusd", "euro dolar", "euro usd"}):
+        return ("EUR", "USD")
+    if any(token in normalized for token in {"usd/eur", "usdeur", "dolar euro", "usd euro"}):
+        return ("USD", "EUR")
+    if any(token in normalized for token in {"gbp/usd", "gbpusd", "sterlin dolar", "sterlin usd"}):
+        return ("GBP", "USD")
+    if any(token in normalized for token in {"gbp/try", "gbptry", "sterlin tl", "sterlin try", "sterlin lira"}):
+        return ("GBP", "TRY")
+    if any(token in normalized for token in {"eur/try", "eurtry", "euro tl", "euro try", "euro lira"}):
+        return ("EUR", "TRY")
+    if any(token in normalized for token in {"usd/try", "usdtry", "dolar tl", "dolar try", "dolar lira"}):
+        return ("USD", "TRY")
+    if any(token in normalized for token in {"sterlin", "gbp", "pound"}):
+        return ("GBP", "TRY")
     if any(token in normalized for token in {"eur", "euro"}):
         return ("EUR", "TRY")
     if any(token in normalized for token in {"usd", "dolar", "dollar"}):
@@ -91,6 +114,18 @@ def detect_index_symbol(user_text: str) -> tuple[str, str]:
         return ("NDX", "Nasdaq 100")
     if any(token in normalized for token in {"dow jones", "dow", "dji"}):
         return ("DJI", "Dow Jones")
+    if any(token in normalized for token in {"russell 2000", "russell", "iwm"}):
+        return ("RUT", "Russell 2000")
+    if any(token in normalized for token in {"nikkei 225", "nikkei", "japonya endeksi"}):
+        return ("NIKKEI", "Nikkei 225")
+    if any(token in normalized for token in {"dax", "almanya endeksi"}):
+        return ("DAX", "DAX")
+    if any(token in normalized for token in {"ftse 100", "ftse", "ingiltere endeksi"}):
+        return ("FTSE", "FTSE 100")
+    if any(token in normalized for token in {"euro stoxx 50", "stoxx 50"}):
+        return ("STOXX50", "Euro Stoxx 50")
+    if any(token in normalized for token in {"hang seng", "hong kong endeksi"}):
+        return ("HSI", "Hang Seng")
     return ("SPX", "S&P 500")
 
 
@@ -99,8 +134,29 @@ def get_index_proxy_symbol(index_symbol: str) -> tuple[str, str]:
         "SPX": ("SPY", "S&P 500 ETF proxy (SPY)"),
         "NDX": ("QQQ", "Nasdaq 100 ETF proxy (QQQ)"),
         "DJI": ("DIA", "Dow Jones ETF proxy (DIA)"),
+        "RUT": ("IWM", "Russell 2000 ETF proxy (IWM)"),
+        "NIKKEI": ("EWJ", "Japan ETF proxy (EWJ)"),
+        "DAX": ("EWG", "Germany ETF proxy (EWG)"),
+        "FTSE": ("EWU", "United Kingdom ETF proxy (EWU)"),
+        "STOXX50": ("FEZ", "Euro Stoxx 50 ETF proxy (FEZ)"),
+        "HSI": ("EWH", "Hong Kong ETF proxy (EWH)"),
     }
     return proxy_map.get(index_symbol, ("SPY", "S&P 500 ETF proxy (SPY)"))
+
+
+def detect_precious_metal_asset(user_text: str) -> tuple[str, str, str, str | None] | None:
+    normalized = normalize_topic_text(user_text)
+    if not _contains_any_keyword(normalized, TOOL_METAL_KEYWORDS):
+        return None
+
+    to_currency = "TRY" if any(token in normalized for token in {"tl", "try", "lira"}) else "USD"
+    if any(token in normalized for token in {"gumus", "silver", "xag"}):
+        return ("XAG", to_currency, f"Gumus ({to_currency})", None)
+
+    note = None
+    if "gram altin" in normalized:
+        note = "Bu veri gram altin degil, uluslararasi altin referansidir."
+    return ("XAU", to_currency, f"Altin ({to_currency})", note)
 
 
 def parse_latest_oil_value(payload: dict[str, object]) -> tuple[str, str]:
@@ -120,6 +176,15 @@ def parse_global_quote(payload: dict[str, object]) -> tuple[str, str]:
     return trading_day, price
 
 
+def parse_currency_exchange_rate(payload: dict[str, object]) -> tuple[str, str]:
+    data = payload.get("Realtime Currency Exchange Rate") or {}
+    rate = data.get("5. Exchange Rate")
+    last_refreshed = data.get("6. Last Refreshed", "-")
+    if not rate:
+        raise RuntimeError("Kur verisi bulunamadi.")
+    return str(last_refreshed), str(rate)
+
+
 def _looks_like_direct_price_question(user_text: str) -> bool:
     normalized = normalize_topic_text(user_text)
     direct_patterns = ["kac", "ne kadar", "fiyat", "fiyati", "kacti", "guncel"]
@@ -135,11 +200,7 @@ def get_forex_rate_reply(user_text: str) -> str:
     payload = alpha_vantage_request(
         {"function": "CURRENCY_EXCHANGE_RATE", "from_currency": from_currency, "to_currency": to_currency}
     )
-    data = payload.get("Realtime Currency Exchange Rate") or {}
-    rate = data.get("5. Exchange Rate")
-    last_refreshed = data.get("6. Last Refreshed", "-")
-    if not rate:
-        raise RuntimeError("Doviz kuru verisi bulunamadi.")
+    last_refreshed, rate = parse_currency_exchange_rate(payload)
     facts = {
         "varlik": f"{from_currency}/{to_currency}",
         "guncel_seviye": str(rate),
@@ -156,6 +217,34 @@ def get_forex_rate_reply(user_text: str) -> str:
         f"{from_currency}/{to_currency} tarafinda guncel seviye {rate}. "
         f"Bu veri {last_refreshed} zaman damgasiyla geldi."
     )
+
+
+@log_timing()
+def get_precious_metal_reply(user_text: str) -> str:
+    asset = detect_precious_metal_asset(user_text)
+    if not asset:
+        return "Hangi emtiayi istedigini anlayamadim. Ornek: altin fiyati kac veya gumus kac yazabilirsin."
+    from_currency, to_currency, label, note = asset
+    payload = alpha_vantage_request(
+        {"function": "CURRENCY_EXCHANGE_RATE", "from_currency": from_currency, "to_currency": to_currency}
+    )
+    last_refreshed, rate = parse_currency_exchange_rate(payload)
+    facts = {
+        "varlik": label,
+        "guncel_seviye": str(rate),
+        "son_guncellenme": str(last_refreshed),
+        "kaynak": "Alpha Vantage",
+    }
+    if note:
+        facts["not"] = note
+    try:
+        return verbalize_market_reply(user_text, facts)
+    except Exception:
+        logger.exception("Metal verisi dogal dile cevrilemedi, sabit metne donuluyor.")
+    response = f"Su an {label} icin guncel seviye {rate}. Son guncellenme: {last_refreshed}."
+    if note:
+        response = f"{response} {note}"
+    return response
 
 
 @log_timing()
@@ -225,6 +314,8 @@ def answer_with_market_tool(user_text: str) -> str | None:
     try:
         if intent == "forex":
             return get_forex_rate_reply(user_text)
+        if intent == "metal":
+            return get_precious_metal_reply(user_text)
         if intent == "index":
             return get_us_index_reply(user_text)
         if intent == "oil":

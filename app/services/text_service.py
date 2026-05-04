@@ -54,20 +54,34 @@ def is_capability_question(text: str) -> bool:
     return any(pattern in normalized for pattern in patterns)
 
 
-def is_smalltalk_question(text: str) -> bool:
+def is_greeting_question(text: str) -> bool:
     normalized = normalize_topic_text(text)
     patterns = [
         "merhaba",
         "selam",
         "selamlar",
         "gunaydin",
+        "iyi gunler",
         "iyi aksamlar",
         "iyi geceler",
+        "hos bulduk",
+        "hosbuldum",
+    ]
+    return any(pattern in normalized for pattern in patterns)
+
+
+def is_how_are_you_question(text: str) -> bool:
+    normalized = normalize_topic_text(text)
+    patterns = [
         "nasilsin",
         "naber",
         "napiyorsun",
     ]
     return any(pattern in normalized for pattern in patterns)
+
+
+def is_smalltalk_question(text: str) -> bool:
+    return is_greeting_question(text) or is_how_are_you_question(text)
 
 
 def is_general_economy_question(text: str) -> bool:

@@ -20,6 +20,8 @@ from app.services.text_service import (
     is_asking_stored_name,
     is_capability_question,
     is_general_economy_question,
+    is_greeting_question,
+    is_how_are_you_question,
     is_smalltalk_question,
 )
 
@@ -107,7 +109,13 @@ def build_current_name_reply(chat_id: int) -> str:
     return f"Adin {user_name}."
 
 
-def build_smalltalk_reply(chat_id: int) -> str:
+def build_greeting_reply(chat_id: int) -> str:
+    user_name = get_chat_memory(chat_id).get("name")
+    prefix = f"{user_name}, " if user_name else ""
+    return f"{prefix}merhaba, hos geldin. Istersen sorunu dogrudan yaz."
+
+
+def build_how_are_you_reply(chat_id: int) -> str:
     user_name = get_chat_memory(chat_id).get("name")
     prefix = f"{user_name}, " if user_name else ""
     return (
@@ -126,8 +134,14 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     if is_asking_stored_name(normalized_user_text):
         return build_current_name_reply(chat_id)
 
+    if is_greeting_question(normalized_user_text):
+        return build_greeting_reply(chat_id)
+
+    if is_how_are_you_question(normalized_user_text):
+        return build_how_are_you_reply(chat_id)
+
     if is_smalltalk_question(normalized_user_text):
-        return build_smalltalk_reply(chat_id)
+        return build_how_are_you_reply(chat_id)
 
     if detect_user_name(normalized_user_text) and len(normalized_user_text.split()) <= 6:
         return build_name_ack_reply(chat_id)

@@ -285,6 +285,29 @@ Kullanicinin mesaji:
 
 
 @log_timing()
+def generate_conversational_fallback_reply(chat_id: int, user_text: str) -> str:
+    hitap = _build_user_name_context(chat_id)
+    prompt = f"""
+Kullanicinin mesaji mevcut rule ve tool akislariyla eslesmedi.
+Mesaj kisa bir sohbet, onay, tesekkur, devam sinyali veya dogal konusma ise sicak ve kisa bir Turkce cevap ver.
+Mesaj gercek bir bilgi sorusu, canli veri talebi, yatirim yorumu veya uzmanlik gerektiren bir konuysa tam olarak su cumleyi ver: {UNKNOWN_MESSAGE}
+"Tamam." gibi ayni kelimeyi tekrar etme.
+Yildiz kullanma.
+Markdown kullanma.
+En fazla 2 cumle kur.
+{hitap}
+
+Kullanicinin mesaji:
+{user_text}
+""".strip()
+    try:
+        return _generate_text(prompt, max_output_tokens=160)
+    except RuntimeError:
+        logger.warning("Konusma fallback cevabi Gemini ile uretilemedi.", exc_info=True)
+        return UNKNOWN_MESSAGE
+
+
+@log_timing()
 def verbalize_market_reply(user_text: str, facts: dict[str, str]) -> str:
     facts_text = "\n".join(f"- {key}: {value}" for key, value in facts.items())
     prompt = f"""

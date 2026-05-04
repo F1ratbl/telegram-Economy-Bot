@@ -6,6 +6,7 @@ from app.core.perf import log_timing, timed_block
 from app.services.ai_service import (
     delete_uploaded_gemini_file,
     generate_acknowledgement_reply,
+    generate_conversational_fallback_reply,
     generate_general_reply,
     transcribe_voice_to_text,
 )
@@ -195,12 +196,18 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     if not should_search_knowledge_base(user_text):
         if is_general_economy_question(user_text):
             return generate_general_reply(chat_id, user_text)
+        conversational_reply = generate_conversational_fallback_reply(chat_id, normalized_user_text)
+        if conversational_reply and conversational_reply != UNKNOWN_MESSAGE:
+            return conversational_reply
         return UNKNOWN_MESSAGE
 
     kb_answer = answer_with_knowledge_base_tool(chat_id, user_text)
     if kb_answer:
         return kb_answer
 
+    conversational_reply = generate_conversational_fallback_reply(chat_id, normalized_user_text)
+    if conversational_reply and conversational_reply != UNKNOWN_MESSAGE:
+        return conversational_reply
     return UNKNOWN_MESSAGE
 
 

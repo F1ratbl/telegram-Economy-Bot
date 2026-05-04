@@ -8,7 +8,7 @@ from google.api_core import exceptions as google_api_exceptions
 
 from app.core.perf import log_timing
 from app.core.config import MAX_OUTPUT_TOKENS, UNKNOWN_MESSAGE
-from app.services.memory_service import get_chat_memory
+from app.services.memory_service import format_memory_context, get_chat_memory
 from app.services.state import MODEL
 from app.services.text_service import sanitize_reply_text
 import logging
@@ -263,48 +263,44 @@ Soru:
 
 @log_timing()
 def generate_acknowledgement_reply(chat_id: int, user_text: str) -> str:
-    hitap = _build_user_name_context(chat_id)
+    memory_context = format_memory_context(chat_id)
     prompt = f"""
 Kullanici kisa bir onay, tesekkur veya konusma devam mesaji yazdi.
-Buna dogal, sicak ve kisa bir Turkce cevap ver.
+Buna son konusma gecmisini dikkate alarak dogal, sicak ve kisa bir Turkce cevap ver.
 "Tamam." gibi ayni kelimeyi tekrar etme.
 Konusmayi nazikce yeni soruya ac.
 Yildiz kullanma.
 Markdown kullanma.
 En fazla 2 cumle kur.
-{hitap}
+
+Bellek:
+{memory_context}
 
 Kullanicinin mesaji:
 {user_text}
 """.strip()
-    try:
-        return _generate_text(prompt, max_output_tokens=120)
-    except RuntimeError:
-        logger.warning("Onay cevabi Gemini ile uretilemedi.", exc_info=True)
-        return "Anladim. Nasil yardimci olabilirim?"
+    return _generate_text(prompt, max_output_tokens=120)
 
 
 @log_timing()
 def generate_conversational_fallback_reply(chat_id: int, user_text: str) -> str:
-    hitap = _build_user_name_context(chat_id)
+    memory_context = format_memory_context(chat_id)
     prompt = f"""
 Kullanicinin mesaji mevcut rule ve tool akislariyla eslesmedi.
-Mesaj kisa bir sohbet, onay, tesekkur, devam sinyali veya dogal konusma ise sicak ve kisa bir Turkce cevap ver.
+Mesaj kisa bir sohbet, onay, tesekkur, devam sinyali veya dogal konusma ise son konusma gecmisini dikkate alarak sicak ve kisa bir Turkce cevap ver.
 Mesaj gercek bir bilgi sorusu, canli veri talebi, yatirim yorumu veya uzmanlik gerektiren bir konuysa tam olarak su cumleyi ver: {UNKNOWN_MESSAGE}
 "Tamam." gibi ayni kelimeyi tekrar etme.
 Yildiz kullanma.
 Markdown kullanma.
 En fazla 2 cumle kur.
-{hitap}
+
+Bellek:
+{memory_context}
 
 Kullanicinin mesaji:
 {user_text}
 """.strip()
-    try:
-        return _generate_text(prompt, max_output_tokens=160)
-    except RuntimeError:
-        logger.warning("Konusma fallback cevabi Gemini ile uretilemedi.", exc_info=True)
-        return "Mesajini aldim. Nasil yardimci olabilirim?"
+    return _generate_text(prompt, max_output_tokens=160)
 
 
 @log_timing()

@@ -16,7 +16,12 @@ from app.services.telegram_service import (
     send_text_message,
     telegram_api_request,
 )
-from app.services.text_service import is_capability_question, is_general_economy_question, is_smalltalk_question
+from app.services.text_service import (
+    is_asking_stored_name,
+    is_capability_question,
+    is_general_economy_question,
+    is_smalltalk_question,
+)
 
 
 logger = logging.getLogger("economy-assistant-bot")
@@ -95,6 +100,13 @@ def build_name_ack_reply(chat_id: int) -> str:
     return f"Memnun oldum {user_name}. Bundan sonra uygun oldugunda sana adinla hitap ederim."
 
 
+def build_current_name_reply(chat_id: int) -> str:
+    user_name = get_chat_memory(chat_id).get("name")
+    if not user_name:
+        return "Henuz adini kaydetmedim. Istersen benim adim Firat diye yaz, hafizaya alayim."
+    return f"Adin {user_name}."
+
+
 def build_smalltalk_reply(chat_id: int) -> str:
     user_name = get_chat_memory(chat_id).get("name")
     prefix = f"{user_name}, " if user_name else ""
@@ -110,6 +122,9 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     normalized_user_text = user_text.strip()
     if is_capability_question(normalized_user_text):
         return build_capability_reply(chat_id)
+
+    if is_asking_stored_name(normalized_user_text):
+        return build_current_name_reply(chat_id)
 
     if is_smalltalk_question(normalized_user_text):
         return build_smalltalk_reply(chat_id)

@@ -97,3 +97,14 @@ def is_general_economy_question(text: str) -> bool:
         "parite",
     ]
     return any(contains_keyword_variation(normalized, keyword) for keyword in keywords)
+
+
+def is_asking_stored_name(text: str) -> bool:
+    normalized = normalize_topic_text(text)
+    patterns = [
+        "benim adim ne",
+        "adim ne",
+        "ismim ne",
+        "ben kimim",
+    ]
+    return any(pattern in normalized for pattern in patterns)

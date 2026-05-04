@@ -13,6 +13,7 @@ def get_chat_memory(chat_id: int) -> dict[str, Any]:
 
 
 def detect_user_name(user_text: str) -> str | None:
+    blocked_values = {"ne", "nedir", "kim", "kimim", "hangi", "kac"}
     patterns = [
         r"\bad[ıi]m\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)",
         r"\bismim\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)",
@@ -22,7 +23,10 @@ def detect_user_name(user_text: str) -> str | None:
     for pattern in patterns:
         match = re.search(pattern, user_text, flags=re.IGNORECASE)
         if match:
-            return match.group(1).strip().title()
+            candidate = match.group(1).strip()
+            if candidate.lower() in blocked_values:
+                return None
+            return candidate.title()
     return None
 
 

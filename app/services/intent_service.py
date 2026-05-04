@@ -13,6 +13,7 @@ logger = logging.getLogger("economy-assistant-bot")
 SUPPORTED_INTENTS = {
     "greeting",
     "how_are_you",
+    "acknowledgement",
     "capability_question",
     "ask_stored_name",
     "name_addressing_request",
@@ -44,6 +45,7 @@ def classify_user_intent(chat_id: int, user_text: str) -> str:
 Kullanicinin mesajini asagidaki intentlerden sadece birine siniflandir:
 - greeting
 - how_are_you
+- acknowledgement
 - capability_question
 - ask_stored_name
 - name_addressing_request
@@ -56,6 +58,7 @@ Kurallar:
 - Aciklama yazma.
 - Eger kullanici selam veriyorsa greeting sec.
 - Eger kullanici nasil oldugunu soruyorsa how_are_you sec.
+- Eger kullanici tamam, anladim, peki, olur, eyvallah, tesekkur gibi kisa bir onay veya konusma devam mesaji veriyorsa acknowledgement sec.
 - Eger botun hangi konularda yardimci olabilecegini soruyorsa capability_question sec.
 - Eger kayitli adini soruyorsa ask_stored_name sec.
 - Eger bundan sonra adiyla, ismiyle veya benzer sekilde hitap edilmesini istiyorsa name_addressing_request sec.

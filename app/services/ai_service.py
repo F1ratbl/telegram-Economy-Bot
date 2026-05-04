@@ -262,6 +262,29 @@ Soru:
 
 
 @log_timing()
+def generate_acknowledgement_reply(chat_id: int, user_text: str) -> str:
+    hitap = _build_user_name_context(chat_id)
+    prompt = f"""
+Kullanici kisa bir onay, tesekkur veya konusma devam mesaji yazdi.
+Buna dogal, sicak ve kisa bir Turkce cevap ver.
+"Tamam." gibi ayni kelimeyi tekrar etme.
+Konusmayi nazikce yeni soruya ac.
+Yildiz kullanma.
+Markdown kullanma.
+En fazla 2 cumle kur.
+{hitap}
+
+Kullanicinin mesaji:
+{user_text}
+""".strip()
+    try:
+        return _generate_text(prompt, max_output_tokens=120)
+    except RuntimeError:
+        logger.warning("Onay cevabi Gemini ile uretilemedi.", exc_info=True)
+        return "Anladim. Nasil yardimci olabilirim?"
+
+
+@log_timing()
 def verbalize_market_reply(user_text: str, facts: dict[str, str]) -> str:
     facts_text = "\n".join(f"- {key}: {value}" for key, value in facts.items())
     prompt = f"""

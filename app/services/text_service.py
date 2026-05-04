@@ -132,6 +132,26 @@ def is_smalltalk_question(text: str) -> bool:
     return is_greeting_question(text) or is_how_are_you_question(text)
 
 
+def is_acknowledgement_message(text: str) -> bool:
+    normalized = normalize_topic_text(text)
+    normalized = re.sub(r"[^a-z0-9 ]+", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    patterns = {
+        "tamam",
+        "tamamdir",
+        "ok",
+        "okay",
+        "peki",
+        "anladim",
+        "eyvallah",
+        "sagol",
+        "sag ol",
+        "tesekkurler",
+        "tesekkur ederim",
+    }
+    return normalized in patterns
+
+
 def is_general_economy_question(text: str) -> bool:
     normalized = normalize_topic_text(text)
     keywords = [

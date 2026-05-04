@@ -19,6 +19,7 @@ from app.services.telegram_service import (
 )
 from app.services.text_service import (
     compact_direct_market_reply,
+    is_acknowledgement_message,
     is_asking_stored_name,
     is_capability_question,
     is_general_economy_question,
@@ -136,6 +137,12 @@ def build_how_are_you_reply(chat_id: int) -> str:
     )
 
 
+def build_acknowledgement_reply(chat_id: int) -> str:
+    user_name = get_chat_memory(chat_id).get("name")
+    prefix = f"{user_name}, " if user_name else ""
+    return f"{prefix}tamam."
+
+
 def build_gemini_intent_reply(chat_id: int, user_text: str) -> str | None:
     intent = classify_user_intent(chat_id, user_text)
     if intent == "capability_question":
@@ -173,6 +180,9 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
 
     if is_smalltalk_question(normalized_user_text):
         return build_how_are_you_reply(chat_id)
+
+    if is_acknowledgement_message(normalized_user_text):
+        return build_acknowledgement_reply(chat_id)
 
     if detect_user_name(normalized_user_text) and len(normalized_user_text.split()) <= 6:
         return build_name_ack_reply(chat_id)

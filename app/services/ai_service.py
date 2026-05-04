@@ -260,6 +260,7 @@ Kurallar:
 - Markdown kullanma.
 - Yarim cumle birakma.
 - Gereksiz aciklama yapma.
+- Kaynak bilgisi verme.
 - Kullanici dogrudan fiyat sorduysa cevaba dogrudan fiyatla basla.
 - En fazla 3 cumle kur.
 

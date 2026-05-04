@@ -10,15 +10,24 @@ def sanitize_reply_text(text: str) -> str:
 
 def strip_market_source_details(text: str) -> str:
     cleaned = sanitize_reply_text(text)
-    source_sentence_patterns = [
-        r"\s*Bu bilgi .*? kaynagindan alinmistir\.?",
-        r"\s*Bu veri .*? kaynagindan alinmistir\.?",
-        r"\s*Bu bilgi .*? kaynağından alınmıştır\.?",
-        r"\s*Bu veri .*? kaynağından alınmıştır\.?",
+    sentences = [
+        sentence.strip()
+        for sentence in re.split(r"(?<=[.!?])\s+", cleaned)
+        if sentence.strip()
     ]
-    for pattern in source_sentence_patterns:
-        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+    blocked_markers = [
+        "alpha vantage",
+        "kaynagindan alinmistir",
+        "kaynağından alınmıştır",
+    ]
+    filtered_sentences: list[str] = []
+    for sentence in sentences:
+        lowered = sentence.lower()
+        if any(marker in lowered for marker in blocked_markers):
+            continue
+        filtered_sentences.append(sentence)
 
+    cleaned = " ".join(filtered_sentences)
     cleaned = re.sub(r"\s*Alpha Vantage(?: kaynagi| kaynağı)?\.?", "", cleaned, flags=re.IGNORECASE)
     cleaned = re.sub(r"\s{2,}", " ", cleaned)
     cleaned = re.sub(r"\s+\.", ".", cleaned)
@@ -166,5 +175,20 @@ def is_asking_stored_name(text: str) -> bool:
         "adim ne",
         "ismim ne",
         "ben kimim",
+    ]
+    return any(pattern in normalized for pattern in patterns)
+
+
+def is_name_addressing_request(text: str) -> bool:
+    normalized = normalize_topic_text(text)
+    patterns = [
+        "adimla hitap et",
+        "adimla seslen",
+        "adinla hitap et",
+        "bana adimla hitap et",
+        "bana ismimle hitap et",
+        "bundan sonra adimla hitap et",
+        "bundan sonra bana adimla hitap et",
+        "bundan sonra ismimle hitap et",
     ]
     return any(pattern in normalized for pattern in patterns)

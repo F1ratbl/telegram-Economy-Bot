@@ -4,6 +4,7 @@ from pathlib import Path
 from app.core.config import UNKNOWN_MESSAGE, WEBHOOK_BASE_URL
 from app.core.perf import log_timing, timed_block
 from app.services.ai_service import delete_uploaded_gemini_file, generate_general_reply, transcribe_voice_to_text
+from app.services.intent_service import classify_user_intent
 from app.services.knowledge_base_service import should_search_knowledge_base
 from app.services.knowledge_tool import answer_with_knowledge_base_tool
 from app.services.market_service import answer_with_market_tool
@@ -23,6 +24,7 @@ from app.services.text_service import (
     is_general_economy_question,
     is_greeting_question,
     is_how_are_you_question,
+    is_name_addressing_request,
     is_smalltalk_question,
     strip_market_source_details,
 )
@@ -111,10 +113,17 @@ def build_current_name_reply(chat_id: int) -> str:
     return f"Adin {user_name}."
 
 
+def build_name_addressing_reply(chat_id: int) -> str:
+    user_name = get_chat_memory(chat_id).get("name")
+    if not user_name:
+        return "Memnuniyetle, ama once adini bilmem gerekiyor. Ornek olarak benim adim Firat yazabilirsin."
+    return f"Tabii {user_name}. Bundan sonra uygun oldugunda sana adinla hitap ederim."
+
+
 def build_greeting_reply(chat_id: int) -> str:
     user_name = get_chat_memory(chat_id).get("name")
     prefix = f"{user_name}, " if user_name else ""
-    return f"{prefix}merhaba, hos geldin. Istersen sorunu dogrudan yaz."
+    return f"{prefix}merhaba, hos geldin. Size nasıl yardımcı olabilirim."
 
 
 def build_how_are_you_reply(chat_id: int) -> str:
@@ -123,8 +132,25 @@ def build_how_are_you_reply(chat_id: int) -> str:
     return (
         f"{prefix}iyiyim, tesekkur ederim. "
         "Ekonomi, doviz, petrol ve ABD borsasi konularinda yardimci olabilirim. "
-        "Istersen sorunu dogrudan yaz."
+        "Size nasıl yardımcı olabilirim."
     )
+
+
+def build_gemini_intent_reply(chat_id: int, user_text: str) -> str | None:
+    intent = classify_user_intent(chat_id, user_text)
+    if intent == "capability_question":
+        return build_capability_reply(chat_id)
+    if intent == "ask_stored_name":
+        return build_current_name_reply(chat_id)
+    if intent == "name_addressing_request":
+        return build_name_addressing_reply(chat_id)
+    if intent == "greeting":
+        return build_greeting_reply(chat_id)
+    if intent == "how_are_you":
+        return build_how_are_you_reply(chat_id)
+    if intent == "general_economy" and not should_search_knowledge_base(user_text):
+        return generate_general_reply(chat_id, user_text)
+    return None
 
 
 @log_timing()
@@ -135,6 +161,9 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
 
     if is_asking_stored_name(normalized_user_text):
         return build_current_name_reply(chat_id)
+
+    if is_name_addressing_request(normalized_user_text):
+        return build_name_addressing_reply(chat_id)
 
     if is_greeting_question(normalized_user_text):
         return build_greeting_reply(chat_id)
@@ -155,6 +184,10 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
             if kb_answer:
                 return combine_tool_and_kb_answers(tool_answer, kb_answer)
         return tool_answer
+
+    gemini_intent_reply = build_gemini_intent_reply(chat_id, normalized_user_text)
+    if gemini_intent_reply is not None:
+        return gemini_intent_reply
 
     if not should_search_knowledge_base(user_text):
         if is_general_economy_question(user_text):

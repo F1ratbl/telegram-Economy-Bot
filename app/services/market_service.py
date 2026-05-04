@@ -1,6 +1,8 @@
 import logging
 import time
 
+import httpx
+
 from app.core.config import (
     ALPHA_VANTAGE_API_KEY,
     ALPHA_VANTAGE_BASE_URL,
@@ -61,10 +63,13 @@ def alpha_vantage_request(params: dict[str, str]) -> dict[str, object]:
         if wait_seconds > 0:
             time.sleep(wait_seconds)
         request_params = {**params, "apikey": ALPHA_VANTAGE_API_KEY}
-        response = HTTP_CLIENT.get(ALPHA_VANTAGE_BASE_URL, params=request_params)
+        try:
+            response = HTTP_CLIENT.get(ALPHA_VANTAGE_BASE_URL, params=request_params)
+            response.raise_for_status()
+        except httpx.HTTPError as exc:
+            raise RuntimeError("Canli piyasa verisine su anda ulasilamadi.") from exc
         state.LAST_ALPHA_VANTAGE_REQUEST_AT = time.monotonic()
 
-    response.raise_for_status()
     payload = response.json()
     if "Error Message" in payload:
         raise RuntimeError(payload["Error Message"])
@@ -460,4 +465,7 @@ def answer_with_market_tool(user_text: str) -> str | None:
     except RuntimeError as exc:
         logger.warning("Market tool hatasi: %s", exc)
         return f"Canli veri cekilemedi: {exc}"
+    except Exception:
+        logger.exception("Market tool beklenmeyen hata verdi.")
+        return "Canli veri cekilemedi. Birazdan tekrar deneyebilirsin."
     return None

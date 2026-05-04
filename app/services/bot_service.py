@@ -105,10 +105,30 @@ def build_capability_reply(chat_id: int) -> str:
     )
 
 
-def build_name_ack_reply(chat_id: int) -> str:
+def remember_name_once(chat_id: int, detected_name: str | None) -> None:
+    if not detected_name:
+        return
+
+    memory = get_chat_memory(chat_id)
+    current_name = memory.get("name")
+    if current_name:
+        logger.info(
+            "Kullanici adi zaten kayitli oldugu icin yeni ad yok sayildi. current=%s detected=%s",
+            current_name,
+            detected_name,
+        )
+        return
+
+    memory["name"] = detected_name
+    logger.info("Kullanici adi hafizaya kaydedildi: %s", detected_name)
+
+
+def build_name_ack_reply(chat_id: int, detected_name: str | None = None) -> str:
     user_name = get_chat_memory(chat_id).get("name")
     if not user_name:
         return "Ismini kaydedemedim ama istersen tekrar yaz, bir sonraki mesajlarda onunla hitap edeyim."
+    if detected_name and detected_name.casefold() != str(user_name).casefold():
+        return f"Adini {user_name} olarak hatirliyorum. Sohbet temizlenene kadar değiştirilmeyecek."
     return f"Memnun oldum {user_name}. Bundan sonra uygun oldugunda sana adinla hitap ederim."
 
 
@@ -182,8 +202,9 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     if is_smalltalk_question(normalized_user_text):
         return build_how_are_you_reply(chat_id)
 
-    if detect_user_name(normalized_user_text) and len(normalized_user_text.split()) <= 6:
-        return build_name_ack_reply(chat_id)
+    detected_name = detect_user_name(normalized_user_text)
+    if detected_name and len(normalized_user_text.split()) <= 6:
+        return build_name_ack_reply(chat_id, detected_name)
 
     tool_answer = answer_with_market_tool(user_text)
     if tool_answer is not None:
@@ -238,9 +259,7 @@ def process_update(update: dict[str, object]) -> None:
         voice_payload = message.get("voice")
 
         detected_name = detect_user_name(user_text) if user_text else None
-        if detected_name:
-            get_chat_memory(chat_id)["name"] = detected_name
-            logger.info("Kullanici adi hafizaya kaydedildi: %s", detected_name)
+        remember_name_once(chat_id, detected_name)
 
         if user_text:
             with timed_block("process_update.answer_text"):
@@ -251,9 +270,7 @@ def process_update(update: dict[str, object]) -> None:
             with timed_block("process_update.voice_transcription"):
                 transcribed_text, gemini_file_name = transcribe_voice_to_text(input_audio_path)
             detected_name = detect_user_name(transcribed_text)
-            if detected_name:
-                get_chat_memory(chat_id)["name"] = detected_name
-                logger.info("Kullanici adi sesli mesajdan hafizaya kaydedildi: %s", detected_name)
+            remember_name_once(chat_id, detected_name)
             with timed_block("process_update.answer_transcribed_text"):
                 reply_text = answer_question_with_kb(chat_id, transcribed_text)
             user_text = transcribed_text

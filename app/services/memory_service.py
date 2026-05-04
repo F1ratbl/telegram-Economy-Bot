@@ -13,10 +13,26 @@ def get_chat_memory(chat_id: int) -> dict[str, Any]:
 
 
 def detect_user_name(user_text: str) -> str | None:
-    blocked_values = {"ne", "nedir", "kim", "kimim", "hangi", "kac"}
+    blocked_values = {
+        "kac",
+        "kaç",
+        "kim",
+        "kimim",
+        "mi",
+        "mu",
+        "musun",
+        "müsün",
+        "ne",
+        "nedir",
+        "ney",
+        "neydi",
+        "nedi",
+        "nadir",
+        "hangi",
+    }
     patterns = [
-        r"\bad[ıi]m\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)",
-        r"\bismim\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)",
+        r"\bad[ıi]m\s+(?:benim\s+)?([A-Za-zÇĞİÖŞÜçğıöşü]+)\b",
+        r"\bismim\s+(?:benim\s+)?([A-Za-zÇĞİÖŞÜçğıöşü]+)\b",
         r"\bben\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)",
         r"\bbana\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)\s+de",
     ]
@@ -24,7 +40,8 @@ def detect_user_name(user_text: str) -> str | None:
         match = re.search(pattern, user_text, flags=re.IGNORECASE)
         if match:
             candidate = match.group(1).strip()
-            if candidate.lower() in blocked_values:
+            normalized_candidate = candidate.casefold()
+            if normalized_candidate in blocked_values:
                 return None
             return candidate.title()
     return None

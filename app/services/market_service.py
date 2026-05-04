@@ -61,6 +61,8 @@ def alpha_vantage_request(params: dict[str, str]) -> dict[str, object]:
 
 def detect_market_tool_intent(user_text: str) -> str | None:
     normalized = normalize_topic_text(user_text)
+    if detect_forex_pair(user_text) and _looks_like_direct_price_question(user_text):
+        return "forex"
     if any(contains_keyword_variation(normalized, keyword) for keyword in TOOL_OIL_KEYWORDS):
         return "oil"
     if any(contains_keyword_variation(normalized, keyword) for keyword in TOOL_INDEX_KEYWORDS):

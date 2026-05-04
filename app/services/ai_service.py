@@ -4,6 +4,7 @@ import re
 from typing import Any
 
 import google.generativeai as genai
+from google.api_core import exceptions as google_api_exceptions
 
 from app.core.perf import log_timing
 from app.core.config import MAX_OUTPUT_TOKENS, UNKNOWN_MESSAGE
@@ -14,6 +15,7 @@ import logging
 
 
 logger = logging.getLogger("economy-assistant-bot")
+GEMINI_UNAVAILABLE_MESSAGE = "Gemini kotasi doldu veya su anda yanit veremiyor."
 
 
 @log_timing()
@@ -69,7 +71,12 @@ def _build_user_name_context(chat_id: int) -> str:
 
 @log_timing()
 def _generate_text(prompt: str, *, max_output_tokens: int) -> str:
-    response = MODEL.generate_content(prompt, generation_config={"max_output_tokens": max_output_tokens})
+    try:
+        response = MODEL.generate_content(prompt, generation_config={"max_output_tokens": max_output_tokens})
+    except google_api_exceptions.ResourceExhausted as exc:
+        raise RuntimeError(GEMINI_UNAVAILABLE_MESSAGE) from exc
+    except google_api_exceptions.GoogleAPIError as exc:
+        raise RuntimeError("Gemini su anda yanit veremiyor.") from exc
     finish_reasons = extract_finish_reasons(response)
     if finish_reasons:
         logger.info(
@@ -224,7 +231,11 @@ Bilgi tabani:
 Kullanicinin sorusu:
 {user_text}
 """.strip()
-    return _generate_text(prompt, max_output_tokens=220)
+    try:
+        return _generate_text(prompt, max_output_tokens=220)
+    except RuntimeError:
+        logger.warning("KB ozeti Gemini ile uretilemedi; extractive fallback kullanilacak.", exc_info=True)
+        return build_extractive_kb_fallback(user_text, context_chunks)
 
 
 @log_timing()
@@ -243,7 +254,11 @@ En fazla 4 cumle kur.
 Soru:
 {user_text}
 """.strip()
-    return _generate_text(prompt, max_output_tokens=min(MAX_OUTPUT_TOKENS, 300))
+    try:
+        return _generate_text(prompt, max_output_tokens=min(MAX_OUTPUT_TOKENS, 300))
+    except RuntimeError:
+        logger.warning("Genel cevap Gemini ile uretilemedi.", exc_info=True)
+        return "Su anda yapay zeka yanit kotasi doldu. Birazdan tekrar deneyebilirsin."
 
 
 @log_timing()

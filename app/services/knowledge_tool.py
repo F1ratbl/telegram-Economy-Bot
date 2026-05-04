@@ -24,10 +24,14 @@ def answer_with_knowledge_base_tool(chat_id: int, user_text: str, *, summary_onl
         logger.info("Knowledgebase tool sonuc bulamadi: %s", user_text)
         return None
 
-    if summary_only:
-        answer = generate_kb_context_summary(chat_id, user_text, context_chunks)
-    else:
-        answer = generate_kb_based_reply(chat_id, user_text, context_chunks)
+    try:
+        if summary_only:
+            answer = generate_kb_context_summary(chat_id, user_text, context_chunks)
+        else:
+            answer = generate_kb_based_reply(chat_id, user_text, context_chunks)
+    except RuntimeError:
+        logger.warning("Knowledgebase Gemini cevabi uretilemedi; fallback deneniyor.", exc_info=True)
+        answer = None
 
     if answer and answer != UNKNOWN_MESSAGE:
         return answer

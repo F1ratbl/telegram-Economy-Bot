@@ -179,10 +179,6 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
 
     tool_answer = answer_with_market_tool(user_text)
     if tool_answer is not None:
-        if should_search_knowledge_base(user_text):
-            kb_answer = answer_with_knowledge_base_tool(chat_id, user_text, summary_only=True)
-            if kb_answer:
-                return combine_tool_and_kb_answers(tool_answer, kb_answer)
         return tool_answer
 
     gemini_intent_reply = build_gemini_intent_reply(chat_id, normalized_user_text)

@@ -5,6 +5,7 @@ from app.core.config import (
     ALPHA_VANTAGE_API_KEY,
     ALPHA_VANTAGE_BASE_URL,
     MARKET_TOOL_UNAVAILABLE_MESSAGE,
+    UNSUPPORTED_MARKET_DATA_MESSAGE,
     TOOL_FOREX_KEYWORDS,
     TOOL_INDEX_KEYWORDS,
     TOOL_METAL_KEYWORDS,
@@ -23,6 +24,15 @@ TROY_OUNCE_TO_GRAM = 31.1034768
 
 def _contains_any_keyword(text: str, keywords: set[str]) -> bool:
     return any(contains_keyword_variation(text, keyword) for keyword in keywords)
+
+
+def _build_compact_market_reply(label: str, value: str, unit: str | None = None) -> str:
+    compact_unit = f" {unit}" if unit else ""
+    return f"{label} {value}{compact_unit}."
+
+
+def _simplify_market_label(label: str) -> str:
+    return label.replace(" (TRY)", "").replace(" (USD)", "")
 
 
 def _looks_like_explanatory_question(user_text: str) -> bool:
@@ -117,7 +127,7 @@ def detect_index_symbol(user_text: str) -> tuple[str, str]:
         return ("DJI", "Dow Jones")
     if any(token in normalized for token in {"russell 2000", "russell", "iwm"}):
         return ("RUT", "Russell 2000")
-    if any(token in normalized for token in {"nikkei 225", "nikkei", "japonya endeksi"}):
+    if any(token in normalized for token in {"nikkei 225", "nikkei", "japonya endeksi", "japon borsasi"}):
         return ("NIKKEI", "Nikkei 225")
     if any(token in normalized for token in {"dax", "almanya endeksi"}):
         return ("DAX", "DAX")
@@ -275,6 +285,41 @@ def _looks_like_direct_price_question(user_text: str) -> bool:
     return any(pattern in normalized for pattern in direct_patterns)
 
 
+def _looks_like_market_data_request(user_text: str) -> bool:
+    normalized = normalize_topic_text(user_text)
+    if not _looks_like_direct_price_question(user_text):
+        return False
+    market_terms = {
+        "borsa",
+        "endeks",
+        "hisse",
+        "kripto",
+        "coin",
+        "bitcoin",
+        "ethereum",
+        "btc",
+        "eth",
+        "bist",
+        "viop",
+        "nikkei",
+        "japon borsasi",
+        "hang seng",
+        "dax",
+        "ftse",
+        "s&p 500",
+        "sp500",
+        "nasdaq",
+        "dow jones",
+        "dolar",
+        "euro",
+        "sterlin",
+        "altin",
+        "gumus",
+        "petrol",
+    }
+    return _contains_any_keyword(normalized, market_terms)
+
+
 @log_timing()
 def get_forex_rate_reply(user_text: str) -> str:
     pair = detect_forex_pair(user_text)
@@ -285,18 +330,17 @@ def get_forex_rate_reply(user_text: str) -> str:
         {"function": "CURRENCY_EXCHANGE_RATE", "from_currency": from_currency, "to_currency": to_currency}
     )
     last_refreshed, rate = parse_currency_exchange_rate(payload)
+    if _looks_like_direct_price_question(user_text):
+        return _build_compact_market_reply(f"{from_currency}/{to_currency}", str(rate))
     facts = {
         "varlik": f"{from_currency}/{to_currency}",
         "guncel_seviye": str(rate),
         "son_guncellenme": str(last_refreshed),
-        "kaynak": "Alpha Vantage",
     }
     try:
         return verbalize_market_reply(user_text, facts)
     except Exception:
         logger.exception("Doviz verisi dogal dile cevrilemedi, sabit metne donuluyor.")
-    if _looks_like_direct_price_question(user_text):
-        return f"Su an {from_currency}/{to_currency} kuru {rate} seviyesinde gorunuyor. Son guncellenme: {last_refreshed}."
     return (
         f"{from_currency}/{to_currency} tarafinda guncel seviye {rate}. "
         f"Bu veri {last_refreshed} zaman damgasiyla geldi."
@@ -328,12 +372,13 @@ def get_precious_metal_reply(user_text: str) -> str:
             unit = "TRY/ons"
 
     rate_text = f"{rate:.2f}" if unit.startswith("TRY") else f"{rate:.4f}"
+    if _looks_like_direct_price_question(user_text):
+        compact_unit = "TL" if unit.startswith("TRY") else unit
+        return _build_compact_market_reply(_simplify_market_label(label), rate_text, compact_unit)
     facts = {
         "varlik": label,
         "guncel_seviye": rate_text,
-        "son_guncellenme": str(last_refreshed),
         "birim": unit,
-        "kaynak": "Alpha Vantage",
     }
     if note:
         facts["not"] = note
@@ -353,6 +398,8 @@ def get_us_index_reply(user_text: str) -> str:
     proxy_symbol, proxy_label = get_index_proxy_symbol(symbol)
     payload = alpha_vantage_request({"function": "GLOBAL_QUOTE", "symbol": proxy_symbol})
     latest_date, latest_value = parse_global_quote(payload)
+    if _looks_like_direct_price_question(user_text):
+        return f"{label} icin elimdeki en yakin gosterge {latest_value} ({proxy_symbol} referansi)."
     facts = {
         "varlik": label,
         "referans_sembol": proxy_symbol,
@@ -360,24 +407,11 @@ def get_us_index_reply(user_text: str) -> str:
         "guncel_seviye": str(latest_value),
         "veri_tarihi": str(latest_date),
         "not": "Bu veri birebir resmi endeks seviyesi degil, ona yakin bir referanstir.",
-        "kaynak": "Alpha Vantage",
     }
     try:
         return verbalize_market_reply(user_text, facts)
     except Exception:
         logger.exception("Endeks verisi dogal dile cevrilemedi, sabit metne donuluyor.")
-    if _looks_like_direct_price_question(user_text):
-        short_label_map = {
-            "Nasdaq 100": "Nasdaq tarafi",
-            "S&P 500": "S&P 500 tarafi",
-            "Dow Jones": "Dow Jones tarafi",
-        }
-        natural_label = short_label_map.get(label, label)
-        return (
-            f"Su an {natural_label} icin elimdeki en yakin gosterge {latest_value}. "
-            f"Bunu {proxy_symbol} uzerinden takip ediyorum; yani bu birebir resmi endeks seviyesi degil, ona yakin bir referans. "
-            f"Veri tarihi de {latest_date}."
-        )
     return (
         f"{label} icin ucretsiz veri siniri nedeniyle {proxy_label} referans alindi. "
         f"Guncel seviye {latest_value}, veri tarihi ise {latest_date}. "
@@ -386,15 +420,16 @@ def get_us_index_reply(user_text: str) -> str:
 
 
 @log_timing()
-def get_oil_price_reply() -> str:
+def get_oil_price_reply(user_text: str) -> str:
     payload = alpha_vantage_request({"function": "WTI", "interval": "daily"})
     latest_date, latest_value = parse_latest_oil_value(payload)
+    if _looks_like_direct_price_question(user_text):
+        return _build_compact_market_reply("WTI ham petrol", str(latest_value), "USD")
     facts = {
         "varlik": "WTI ham petrol",
         "guncel_seviye": str(latest_value),
         "veri_tarihi": str(latest_date),
         "birim": "USD",
-        "kaynak": "Alpha Vantage",
     }
     try:
         return verbalize_market_reply("petrol fiyatı", facts)
@@ -410,6 +445,8 @@ def get_oil_price_reply() -> str:
 def answer_with_market_tool(user_text: str) -> str | None:
     intent = detect_market_tool_intent(user_text)
     if intent is None:
+        if _looks_like_market_data_request(user_text):
+            return UNSUPPORTED_MARKET_DATA_MESSAGE
         return None
     try:
         if intent == "forex":
@@ -419,7 +456,7 @@ def answer_with_market_tool(user_text: str) -> str | None:
         if intent == "index":
             return get_us_index_reply(user_text)
         if intent == "oil":
-            return get_oil_price_reply()
+            return get_oil_price_reply(user_text)
     except RuntimeError as exc:
         logger.warning("Market tool hatasi: %s", exc)
         return f"Canli veri cekilemedi: {exc}"

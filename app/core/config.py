@@ -47,6 +47,12 @@ KB_EMBEDDING_MODEL = get_env("KB_EMBEDDING_MODEL") or "models/text-embedding-004
 KB_TOP_K = 4
 UNKNOWN_MESSAGE = "Bu konuda bilgim yok, bilgi bulamadım."
 MARKET_TOOL_UNAVAILABLE_MESSAGE = "Canli piyasa verisi araci su anda hazir degil. API anahtarini kontrol et."
+UNSUPPORTED_MARKET_DATA_MESSAGE = (
+    "Bu enstruman icin canli veri tool'um yok. "
+    "Su an dolar, euro, sterlin, altin, gumus, petrol ve bazi endekslerde "
+    "(S&P 500, Nasdaq 100, Dow Jones, Russell 2000, Nikkei 225, DAX, FTSE 100, Euro Stoxx 50, Hang Seng) "
+    "fiyat paylasabiliyorum."
+)
 ALPHA_VANTAGE_BASE_URL = "https://www.alphavantage.co/query"
 
 TELEGRAM_API_BASE = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}"
@@ -169,6 +175,7 @@ TOOL_INDEX_KEYWORDS = {
     "iwm",
     "nikkei",
     "nikkei 225",
+    "japon borsasi",
     "japonya endeksi",
     "dax",
     "almanya endeksi",

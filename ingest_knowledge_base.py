@@ -6,7 +6,8 @@ from pathlib import Path
 from typing import Iterable
 
 from dotenv import load_dotenv
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from pypdf import PdfReader
 from qdrant_client import QdrantClient, models
 
@@ -26,7 +27,15 @@ GOOGLE_API_KEY = (
     or os.getenv("GOOGLE_STUDIO_API")
 )
 
-genai.configure(api_key=GOOGLE_API_KEY)
+GEMINI_CLIENT = genai.Client(api_key=GOOGLE_API_KEY)
+
+
+def normalize_embedding_task_type(task_type: str) -> str:
+    task_type_map = {
+        "retrieval_query": "RETRIEVAL_QUERY",
+        "retrieval_document": "RETRIEVAL_DOCUMENT",
+    }
+    return task_type_map.get(task_type.lower(), task_type.upper())
 
 
 def iter_source_files(input_dir: Path) -> Iterable[Path]:
@@ -128,12 +137,13 @@ def chunk_text(text: str, chunk_size: int = 1200) -> list[str]:
 
 
 def embed_document_text(text: str) -> list[float]:
-    response = genai.embed_content(
+    response = GEMINI_CLIENT.models.embed_content(
         model=KB_EMBEDDING_MODEL,
-        content=text,
-        task_type="retrieval_document",
+        contents=text,
+        config=types.EmbedContentConfig(task_type=normalize_embedding_task_type("retrieval_document")),
     )
-    embedding = response.get("embedding") or []
+    embeddings = getattr(response, "embeddings", None) or []
+    embedding = getattr(embeddings[0], "values", []) if embeddings else []
     return [float(value) for value in embedding]
 
 

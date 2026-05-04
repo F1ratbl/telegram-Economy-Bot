@@ -176,10 +176,14 @@ def is_asking_stored_name(text: str) -> bool:
         "adimi soyle",
         "adimi soyler misin",
         "adimi hatirliyor musun",
+        "adimi biliyor musun",
+        "benim adimi biliyor musun",
         "ismim ne",
         "ismimi soyle",
         "ismimi soyler misin",
         "ismimi hatirliyor musun",
+        "ismimi biliyor musun",
+        "benim ismimi biliyor musun",
         "ben kimim",
     ]
     return any(pattern in normalized for pattern in patterns)

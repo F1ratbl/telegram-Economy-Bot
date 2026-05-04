@@ -3,13 +3,12 @@ from pathlib import Path
 import re
 from typing import Any
 
-import google.generativeai as genai
-from google.api_core import exceptions as google_api_exceptions
+from google.genai import errors as genai_errors, types
 
 from app.core.perf import log_timing
 from app.core.config import MAX_OUTPUT_TOKENS, UNKNOWN_MESSAGE
 from app.services.memory_service import format_memory_context, get_chat_memory
-from app.services.state import MODEL
+from app.services.state import GEMINI_CLIENT, MODEL
 from app.services.text_service import sanitize_reply_text
 import logging
 
@@ -18,12 +17,20 @@ logger = logging.getLogger("economy-assistant-bot")
 GEMINI_UNAVAILABLE_MESSAGE = "Gemini kotasi doldu veya su anda yanit veremiyor."
 
 
+def _is_quota_error(exc: genai_errors.APIError) -> bool:
+    code = getattr(exc, "code", None)
+    status = str(getattr(exc, "status", "") or "").upper()
+    message = str(getattr(exc, "message", "") or exc).lower()
+    return code == 429 or "RESOURCE_EXHAUSTED" in status or "quota" in message
+
+
 @log_timing()
 def wait_for_uploaded_file(file_name: str, timeout_seconds: int = 120):
     deadline = time.monotonic() + timeout_seconds
     while True:
-        uploaded_file = genai.get_file(file_name)
-        state = getattr(getattr(uploaded_file, "state", None), "name", "ACTIVE")
+        uploaded_file = GEMINI_CLIENT.files.get(name=file_name)
+        raw_state = getattr(uploaded_file, "state", None)
+        state = str(getattr(raw_state, "name", raw_state) or "ACTIVE").split(".")[-1].upper()
         if state == "ACTIVE":
             return uploaded_file
         if state == "FAILED":
@@ -64,6 +71,10 @@ def extract_finish_reasons(response: Any) -> list[str]:
     return reasons
 
 
+def has_max_tokens_finish_reason(response: Any) -> bool:
+    return any(reason.upper().split(".")[-1] == "MAX_TOKENS" for reason in extract_finish_reasons(response))
+
+
 def _build_user_name_context(chat_id: int) -> str:
     user_name = get_chat_memory(chat_id).get("name")
     return f"Kullanicinin adi: {user_name}" if user_name else "Kullanicinin adi bilinmiyor."
@@ -71,11 +82,26 @@ def _build_user_name_context(chat_id: int) -> str:
 
 @log_timing()
 def _generate_text(prompt: str, *, max_output_tokens: int) -> str:
+    retry_output_tokens = max(max_output_tokens * 3, 512)
+    if retry_output_tokens == max_output_tokens:
+        retry_output_tokens = max_output_tokens + 256
+
     try:
         response = MODEL.generate_content(prompt, generation_config={"max_output_tokens": max_output_tokens})
-    except google_api_exceptions.ResourceExhausted as exc:
-        raise RuntimeError(GEMINI_UNAVAILABLE_MESSAGE) from exc
-    except google_api_exceptions.GoogleAPIError as exc:
+        if has_max_tokens_finish_reason(response):
+            logger.info(
+                "Gemini cevabi token sinirina carpti; daha yuksek limit ile tekrar deneniyor. "
+                "initial_max_output_tokens=%s retry_max_output_tokens=%s",
+                max_output_tokens,
+                retry_output_tokens,
+            )
+            response = MODEL.generate_content(
+                prompt,
+                generation_config={"max_output_tokens": retry_output_tokens},
+            )
+    except genai_errors.APIError as exc:
+        if _is_quota_error(exc):
+            raise RuntimeError(GEMINI_UNAVAILABLE_MESSAGE) from exc
         raise RuntimeError("Gemini su anda yanit veremiyor.") from exc
     finish_reasons = extract_finish_reasons(response)
     if finish_reasons:
@@ -84,8 +110,8 @@ def _generate_text(prompt: str, *, max_output_tokens: int) -> str:
             ",".join(finish_reasons),
             max_output_tokens,
         )
-        if any(reason.upper() == "MAX_TOKENS" for reason in finish_reasons):
-            logger.warning("Gemini cevabi token sinirina carparak bitmis olabilir.")
+        if any(reason.upper().split(".")[-1] == "MAX_TOKENS" for reason in finish_reasons):
+            logger.info("Gemini cevabi tekrar denemeden sonra da token sinirina carpti.")
     return sanitize_reply_text(extract_response_text(response))
 
 
@@ -332,7 +358,10 @@ Veriler:
 
 @log_timing()
 def transcribe_voice_to_text(audio_path: Path) -> tuple[str, str]:
-    uploaded_file = genai.upload_file(path=audio_path, mime_type="audio/ogg")
+    uploaded_file = GEMINI_CLIENT.files.upload(
+        file=audio_path,
+        config=types.UploadFileConfig(mime_type="audio/ogg"),
+    )
     ready_file = wait_for_uploaded_file(uploaded_file.name)
     response = MODEL.generate_content(
         [
@@ -352,7 +381,7 @@ def delete_uploaded_gemini_file(file_name: str | None) -> None:
     if not file_name:
         return
     try:
-        genai.delete_file(file_name)
+        GEMINI_CLIENT.files.delete(name=file_name)
     except Exception:
         logger.warning(
             "Gemini yuklenen dosyasi silinemedi: %s", file_name, exc_info=True

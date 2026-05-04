@@ -1,8 +1,10 @@
 import logging
 import threading
+from typing import Any
 
-import google.generativeai as genai
 import httpx
+from google import genai
+from google.genai import types
 
 from app.core.config import (
     GEMINI_MODEL_NAME,
@@ -21,8 +23,30 @@ except ImportError:  # pragma: no cover
 
 logger = logging.getLogger("economy-assistant-bot")
 
-genai.configure(api_key=GOOGLE_API_KEY)
-MODEL = genai.GenerativeModel(
+GEMINI_CLIENT = genai.Client(api_key=GOOGLE_API_KEY)
+
+
+class GeminiModel:
+    def __init__(self, *, client: genai.Client, model_name: str, system_instruction: str | None = None) -> None:
+        self.client = client
+        self.model_name = model_name
+        self.system_instruction = system_instruction
+
+    def generate_content(self, contents: Any, generation_config: dict[str, Any] | None = None) -> Any:
+        config_data = dict(generation_config or {})
+        if self.system_instruction:
+            config_data.setdefault("system_instruction", self.system_instruction)
+        config_data.setdefault("thinking_config", types.ThinkingConfig(thinking_budget=0))
+        config = types.GenerateContentConfig(**config_data) if config_data else None
+        return self.client.models.generate_content(
+            model=self.model_name,
+            contents=contents,
+            config=config,
+        )
+
+
+MODEL = GeminiModel(
+    client=GEMINI_CLIENT,
     model_name=GEMINI_MODEL_NAME,
     system_instruction=SYSTEM_INSTRUCTION,
 )

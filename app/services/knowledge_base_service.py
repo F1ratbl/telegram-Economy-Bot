@@ -1,7 +1,6 @@
 import logging
-from typing import Any
 
-import google.generativeai as genai
+from google.genai import types
 
 from app.core.config import (
     KB_EMBEDDING_MODEL,
@@ -11,11 +10,19 @@ from app.core.config import (
     US_STOCK_MARKET_KEYWORDS,
 )
 from app.core.perf import log_timing
-from app.services.state import QDRANT_CLIENT
+from app.services.state import GEMINI_CLIENT, QDRANT_CLIENT
 from app.services.text_service import build_kb_search_queries, contains_keyword_variation, normalize_topic_text
 
 
 logger = logging.getLogger("economy-assistant-bot")
+
+
+def normalize_embedding_task_type(task_type: str) -> str:
+    task_type_map = {
+        "retrieval_query": "RETRIEVAL_QUERY",
+        "retrieval_document": "RETRIEVAL_DOCUMENT",
+    }
+    return task_type_map.get(task_type.lower(), task_type.upper())
 
 
 def is_non_us_market_question(user_text: str) -> bool:
@@ -39,12 +46,13 @@ def should_search_knowledge_base(user_text: str) -> bool:
 
 @log_timing()
 def embed_kb_text(text: str, *, task_type: str) -> list[float]:
-    response: dict[str, Any] = genai.embed_content(
+    response = GEMINI_CLIENT.models.embed_content(
         model=KB_EMBEDDING_MODEL,
-        content=text,
-        task_type=task_type,
+        contents=text,
+        config=types.EmbedContentConfig(task_type=normalize_embedding_task_type(task_type)),
     )
-    embedding = response.get("embedding") or []
+    embeddings = getattr(response, "embeddings", None) or []
+    embedding = getattr(embeddings[0], "values", []) if embeddings else []
     return [float(value) for value in embedding]
 
 

@@ -304,7 +304,7 @@ Kullanicinin mesaji:
         return _generate_text(prompt, max_output_tokens=160)
     except RuntimeError:
         logger.warning("Konusma fallback cevabi Gemini ile uretilemedi.", exc_info=True)
-        return UNKNOWN_MESSAGE
+        return "Mesajini aldim. Nasil yardimci olabilirim?"
 
 
 @log_timing()

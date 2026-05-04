@@ -18,6 +18,20 @@ def get_env(*names: str, required: bool = False) -> str | None:
     return None
 
 
+def normalize_gemini_model_name(model_name: str) -> str:
+    return model_name.strip().removeprefix("models/")
+
+
+def get_env_list(*names: str) -> list[str]:
+    raw_value = get_env(*names) or ""
+    values = [
+        normalize_gemini_model_name(value)
+        for value in raw_value.replace("\n", ",").split(",")
+        if value.strip()
+    ]
+    return list(dict.fromkeys(values))
+
+
 TELEGRAM_BOT_TOKEN = get_env(
     "TELEGRAM_BOT_TOKEN",
     "TELEGRAM_TOKEN",
@@ -32,7 +46,14 @@ GOOGLE_API_KEY = get_env(
     required=True,
 )
 WEBHOOK_BASE_URL = get_env("WEBHOOK_URL", "NGROK_URL", "WEBHOOK_BASE_URL")
-GEMINI_MODEL_NAME = get_env("GEMINI_MODEL", "GEMINI_MODEL_NAME") or "gemini-2.0-flash-lite"
+GEMINI_MODEL_NAME = normalize_gemini_model_name(
+    get_env("GEMINI_MODEL", "GEMINI_MODEL_NAME") or "gemini-2.0-flash-lite"
+)
+GEMINI_FALLBACK_MODEL_NAMES = [
+    model_name
+    for model_name in get_env_list("GEMINI_FALLBACK_MODELS", "GEMINI_FALLBACK_MODEL_NAMES")
+    if model_name != GEMINI_MODEL_NAME
+]
 ALPHA_VANTAGE_API_KEY = get_env("ALPHA_VANTAGE_API_KEY", "ALPHAVANTAGE_API_KEY", "AV_API_KEY")
 IS_VERCEL = bool(os.getenv("VERCEL"))
 VOICE_ENABLED = (get_env("VOICE_ENABLED") or ("false" if IS_VERCEL else "true")).lower() in {"1", "true", "yes", "on"}

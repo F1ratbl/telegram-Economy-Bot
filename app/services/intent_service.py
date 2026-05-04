@@ -4,7 +4,7 @@ import re
 
 from app.core.perf import log_timing
 from app.services.memory_service import format_memory_context
-from app.services.state import MODEL
+from app.services.state import MODEL, is_quota_error
 from app.services.text_service import sanitize_reply_text
 
 
@@ -79,6 +79,9 @@ Mesaj:
         intent = (parsed or {}).get("intent", "unknown").strip()
         if intent in SUPPORTED_INTENTS:
             return intent
-    except Exception:
-        logger.exception("Gemini intent siniflandirmasi basarisiz oldu.")
+    except Exception as exc:
+        if is_quota_error(exc):
+            logger.warning("Gemini intent siniflandirmasi kota nedeniyle atlandi.")
+        else:
+            logger.exception("Gemini intent siniflandirmasi basarisiz oldu.")
     return "unknown"

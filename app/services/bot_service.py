@@ -4,6 +4,7 @@ from pathlib import Path
 from app.core.config import UNKNOWN_MESSAGE, WEBHOOK_BASE_URL
 from app.core.perf import log_timing, timed_block
 from app.services.ai_service import (
+    GEMINI_UNAVAILABLE_MESSAGE,
     delete_uploaded_gemini_file,
     generate_acknowledgement_reply,
     generate_conversational_fallback_reply,
@@ -37,6 +38,26 @@ from app.services.text_service import (
 
 
 logger = logging.getLogger("economy-assistant-bot")
+
+
+def build_gemini_unavailable_reply() -> str:
+    return GEMINI_UNAVAILABLE_MESSAGE
+
+
+def safe_generate_conversational_reply(chat_id: int, user_text: str) -> str:
+    try:
+        return generate_conversational_fallback_reply(chat_id, user_text)
+    except RuntimeError:
+        logger.warning("Gemini sohbet cevabi uretilemedi.", exc_info=True)
+        return build_gemini_unavailable_reply()
+
+
+def safe_generate_acknowledgement_reply(chat_id: int, user_text: str) -> str:
+    try:
+        return generate_acknowledgement_reply(chat_id, user_text)
+    except RuntimeError:
+        logger.warning("Gemini onay/ovgu cevabi uretilemedi.", exc_info=True)
+        return build_gemini_unavailable_reply()
 
 
 def is_start_command(message: dict[str, object]) -> bool:
@@ -175,7 +196,7 @@ def build_gemini_intent_reply(chat_id: int, user_text: str) -> str | None:
     if intent == "how_are_you":
         return build_how_are_you_reply(chat_id)
     if intent == "acknowledgement":
-        return generate_acknowledgement_reply(chat_id, user_text)
+        return safe_generate_acknowledgement_reply(chat_id, user_text)
     if intent == "general_economy" and not should_search_knowledge_base(user_text):
         return generate_general_reply(chat_id, user_text)
     return None
@@ -217,7 +238,7 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     if not should_search_knowledge_base(user_text):
         if is_general_economy_question(user_text):
             return generate_general_reply(chat_id, user_text)
-        conversational_reply = generate_conversational_fallback_reply(chat_id, normalized_user_text)
+        conversational_reply = safe_generate_conversational_reply(chat_id, normalized_user_text)
         if conversational_reply and conversational_reply != UNKNOWN_MESSAGE:
             return conversational_reply
         return UNKNOWN_MESSAGE
@@ -226,7 +247,7 @@ def answer_question_with_kb(chat_id: int, user_text: str) -> str:
     if kb_answer:
         return kb_answer
 
-    conversational_reply = generate_conversational_fallback_reply(chat_id, normalized_user_text)
+    conversational_reply = safe_generate_conversational_reply(chat_id, normalized_user_text)
     if conversational_reply and conversational_reply != UNKNOWN_MESSAGE:
         return conversational_reply
     return UNKNOWN_MESSAGE

@@ -8,20 +8,13 @@ from google.genai import errors as genai_errors, types
 from app.core.perf import log_timing
 from app.core.config import MAX_OUTPUT_TOKENS, UNKNOWN_MESSAGE
 from app.services.memory_service import format_memory_context, get_chat_memory
-from app.services.state import GEMINI_CLIENT, MODEL
+from app.services.state import GEMINI_CLIENT, MODEL, is_quota_error
 from app.services.text_service import sanitize_reply_text
 import logging
 
 
 logger = logging.getLogger("economy-assistant-bot")
 GEMINI_UNAVAILABLE_MESSAGE = "Gemini kotasi doldu veya su anda yanit veremiyor."
-
-
-def _is_quota_error(exc: genai_errors.APIError) -> bool:
-    code = getattr(exc, "code", None)
-    status = str(getattr(exc, "status", "") or "").upper()
-    message = str(getattr(exc, "message", "") or exc).lower()
-    return code == 429 or "RESOURCE_EXHAUSTED" in status or "quota" in message
 
 
 @log_timing()
@@ -100,7 +93,7 @@ def _generate_text(prompt: str, *, max_output_tokens: int) -> str:
                 generation_config={"max_output_tokens": retry_output_tokens},
             )
     except genai_errors.APIError as exc:
-        if _is_quota_error(exc):
+        if is_quota_error(exc):
             raise RuntimeError(GEMINI_UNAVAILABLE_MESSAGE) from exc
         raise RuntimeError("Gemini su anda yanit veremiyor.") from exc
     finish_reasons = extract_finish_reasons(response)

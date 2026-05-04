@@ -17,12 +17,14 @@ from app.services.telegram_service import (
     telegram_api_request,
 )
 from app.services.text_service import (
+    compact_direct_market_reply,
     is_asking_stored_name,
     is_capability_question,
     is_general_economy_question,
     is_greeting_question,
     is_how_are_you_question,
     is_smalltalk_question,
+    strip_market_source_details,
 )
 
 
@@ -219,6 +221,8 @@ def process_update(update: dict[str, object]) -> None:
             )
             return
 
+        reply_text = strip_market_source_details(reply_text)
+        reply_text = compact_direct_market_reply(user_text or "", reply_text)
         reply_text = reply_text.strip() or "Uzgunum, bu mesaja su anda anlamli bir yanit uretemedim."
 
         if user_text:

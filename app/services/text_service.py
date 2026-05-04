@@ -8,6 +8,45 @@ def sanitize_reply_text(text: str) -> str:
     return cleaned.strip()
 
 
+def strip_market_source_details(text: str) -> str:
+    cleaned = sanitize_reply_text(text)
+    source_sentence_patterns = [
+        r"\s*Bu bilgi .*? kaynagindan alinmistir\.?",
+        r"\s*Bu veri .*? kaynagindan alinmistir\.?",
+        r"\s*Bu bilgi .*? kaynağından alınmıştır\.?",
+        r"\s*Bu veri .*? kaynağından alınmıştır\.?",
+    ]
+    for pattern in source_sentence_patterns:
+        cleaned = re.sub(pattern, "", cleaned, flags=re.IGNORECASE)
+
+    cleaned = re.sub(r"\s*Alpha Vantage(?: kaynagi| kaynağı)?\.?", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned)
+    cleaned = re.sub(r"\s+\.", ".", cleaned)
+    return cleaned.strip()
+
+
+def compact_direct_market_reply(user_text: str, reply_text: str) -> str:
+    normalized_user = normalize_topic_text(user_text)
+    if not any(pattern in normalized_user for pattern in ["kac", "ne kadar", "fiyat", "fiyati", "kacti", "guncel"]):
+        return reply_text
+
+    first_number_match = re.search(r"([0-9]+(?:[.,][0-9]+)*)", reply_text)
+    if not first_number_match:
+        return reply_text
+
+    value = first_number_match.group(1)
+    if "altin" in normalized_user:
+        unit = "TL" if any(token in normalized_user for token in ["tl", "try", "lira"]) else None
+        return f"Altin {value}{f' {unit}' if unit else ''}."
+    if "gumus" in normalized_user:
+        unit = "TL" if any(token in normalized_user for token in ["tl", "try", "lira"]) else None
+        return f"Gumus {value}{f' {unit}' if unit else ''}."
+    if "petrol" in normalized_user or "wti" in normalized_user or "brent" in normalized_user:
+        return f"WTI ham petrol {value} USD."
+
+    return reply_text
+
+
 def normalize_topic_text(text: str) -> str:
     lowered = text.lower()
     replacements = str.maketrans({"ç": "c", "ğ": "g", "ı": "i", "ö": "o", "ş": "s", "ü": "u"})

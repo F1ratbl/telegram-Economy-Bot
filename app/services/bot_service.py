@@ -115,7 +115,7 @@ def build_name_ack_reply(chat_id: int) -> str:
 def build_current_name_reply(chat_id: int) -> str:
     user_name = get_chat_memory(chat_id).get("name")
     if not user_name:
-        return "Henuz adini kaydetmedim. Istersen benim adim Firat diye yaz, hafizaya alayim."
+        return "Henuz adini kaydetmedim. Istersen adını yaz, hafizaya alayim."
     return f"Adin {user_name}."
 
 
